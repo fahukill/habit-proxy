@@ -9,11 +9,12 @@ const API_KEY = process.env.API_KEY;
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGODB_URI || "", {
-  dbName: "habit-sync-ai"
-})
-.then(() => console.log("MongoDB connected"))
-.catch((err) => console.error("MongoDB connection error:", err));
+mongoose
+  .connect(process.env.MONGODB_URI || "", {
+    dbName: "habit-sync-ai",
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Middleware to check API key
 app.use((req, res, next) => {
@@ -25,23 +26,29 @@ app.use((req, res, next) => {
 });
 
 // User model
-const User = mongoose.model("User", new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  subscription: {
-    type: String,
-    enum: ["Free", "Pro", "Coach"],
-    default: "Free"
-  }
-}));
+const User = mongoose.model(
+  "User",
+  new mongoose.Schema({
+    name: String,
+    email: String,
+    password: String,
+    subscription: {
+      type: String,
+      enum: ["Free", "Pro", "Coach"],
+      default: "Free",
+    },
+  })
+);
 
 // Habit model
-const Habit = mongoose.model("Habit", new mongoose.Schema({
-  name: String,
-  frequency: { type: String, enum: ["daily", "weekly", "monthly"] },
-  userId: String
-}));
+const Habit = mongoose.model(
+  "Habit",
+  new mongoose.Schema({
+    name: String,
+    frequency: { type: String, enum: ["daily", "weekly", "monthly"] },
+    userId: String,
+  })
+);
 
 // Test route
 app.get("/", (req, res) => {
@@ -50,13 +57,17 @@ app.get("/", (req, res) => {
 
 // Create user
 app.post("/api/users", async (req, res) => {
-  const { name, email, password, subscription } = req.body;
-  if (!email || !password) return res.status(400).json({ error: "Missing fields" });
+  const { name, email, password } = req.body;
+  const subscription = (req.body.subscription || "Free").trim();
+
+  if (!email || !password)
+    return res.status(400).json({ error: "Missing fields" });
+
   try {
     const user = await User.create({ name, email, password, subscription });
     res.status(201).json({ id: user._id });
   } catch (err) {
-    console.error(err);
+    console.error(err.message || err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -79,7 +90,8 @@ app.get("/api/habits", async (req, res) => {
 app.post("/api/habits", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { name, frequency } = req.body;
-  if (!userId || !name || !frequency) return res.status(400).json({ error: "Missing data" });
+  if (!userId || !name || !frequency)
+    return res.status(400).json({ error: "Missing data" });
 
   try {
     const habit = await Habit.create({ name, frequency, userId });
@@ -112,14 +124,20 @@ app.listen(port, () => {
 // Log user in by email/password (mocked for now — no session issued)
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: "Missing credentials" });
+  if (!email || !password)
+    return res.status(400).json({ error: "Missing credentials" });
 
   try {
     const user = await User.findOne({ email });
     if (!user || user.password !== password) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
-    res.json({ id: user._id, name: user.name, email: user.email, subscription: user.subscription });
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      subscription: user.subscription,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -127,17 +145,21 @@ app.post("/api/login", async (req, res) => {
 });
 
 // Habit Log model
-const HabitLog = mongoose.model("HabitLog", new mongoose.Schema({
-  userId: String,
-  habitId: String,
-  date: String
-}));
+const HabitLog = mongoose.model(
+  "HabitLog",
+  new mongoose.Schema({
+    userId: String,
+    habitId: String,
+    date: String,
+  })
+);
 
 // Log a habit
 app.post("/api/habit-log", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { habitId, date } = req.body;
-  if (!userId || !habitId) return res.status(400).json({ error: "Missing data" });
+  if (!userId || !habitId)
+    return res.status(400).json({ error: "Missing data" });
 
   try {
     const today = date || new Date().toISOString().split("T")[0];
@@ -164,11 +186,14 @@ app.get("/api/habit-log", async (req, res) => {
 });
 
 // Report model
-const Report = mongoose.model("Report", new mongoose.Schema({
-  userId: String,
-  date: String,
-  content: String
-}));
+const Report = mongoose.model(
+  "Report",
+  new mongoose.Schema({
+    userId: String,
+    date: String,
+    content: String,
+  })
+);
 
 // Get all reports
 app.get("/api/reports", async (req, res) => {
@@ -209,16 +234,20 @@ app.get("/api/streaks", async (req, res) => {
 });
 
 // Onboarding model
-const Onboarding = mongoose.model("Onboarding", new mongoose.Schema({
-  userId: String,
-  objective: String
-}));
+const Onboarding = mongoose.model(
+  "Onboarding",
+  new mongoose.Schema({
+    userId: String,
+    objective: String,
+  })
+);
 
 // Save onboarding objective
 app.post("/api/onboarding", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { objective } = req.body;
-  if (!userId || !objective) return res.status(400).json({ error: "Missing data" });
+  if (!userId || !objective)
+    return res.status(400).json({ error: "Missing data" });
 
   try {
     const doc = await Onboarding.findOneAndUpdate(
