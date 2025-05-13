@@ -1,5 +1,5 @@
 {
-  "name": "habit-sync-api-proxy",
+  "name": "habit-proxy-secure",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
