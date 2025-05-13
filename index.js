@@ -55,6 +55,10 @@ app.get("/", (req, res) => {
   res.send("HabitSyncAI Proxy API is running.");
 });
 
+// Check if email already exists
+const existing = await User.findOne({ email });
+if (existing) return res.status(409).json({ error: "Email already in use" });
+
 // Create user
 app.post("/api/users", async (req, res) => {
   const { name, email, password } = req.body;
