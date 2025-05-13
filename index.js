@@ -141,9 +141,14 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user || user.password !== password) {
+    if (!user)
       return res.status(401).json({ error: "Invalid email or password" });
-    }
+
+    const bcrypt = require("bcryptjs");
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(401).json({ error: "Invalid email or password" });
+
     res.json({
       id: user._id,
       name: user.name,
