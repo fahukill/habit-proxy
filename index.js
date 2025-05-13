@@ -292,3 +292,23 @@ app.get("/api/onboarding", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// Delete user and their data
+app.delete("/api/user", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+
+  try {
+    await Promise.all([
+      User.deleteOne({ _id: userId }),
+      Habit.deleteMany({ userId }),
+      HabitLog.deleteMany({ userId }),
+      Report.deleteMany({ userId }),
+      Onboarding.deleteMany({ userId }),
+    ]);
+    res.status(200).json({ message: "Account and data deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete account" });
+  }
+});
