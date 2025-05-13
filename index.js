@@ -1,6 +1,6 @@
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,12 +14,12 @@ mongoose.connect(process.env.MONGODB_URI || "", {
 .then(() => console.log("MongoDB connected"))
 .catch((err) => console.error("MongoDB connection error:", err));
 
-// Example route to test connection
+// Test route
 app.get("/", (req, res) => {
   res.send("HabitSyncAI Render Proxy is live!");
 });
 
-// Example route to create a user
+// Create user route
 app.post("/api/users", async (req, res) => {
   const { name, email, password, subscription } = req.body;
   if (!email || !password) return res.status(400).json({ error: "Missing fields" });
