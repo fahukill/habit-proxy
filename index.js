@@ -108,3 +108,141 @@ app.delete("/api/habits/:id", async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+// Log user in by email/password (mocked for now — no session issued)
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "Missing credentials" });
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    res.json({ id: user._id, name: user.name, email: user.email, subscription: user.subscription });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Habit Log model
+const HabitLog = mongoose.model("HabitLog", new mongoose.Schema({
+  userId: String,
+  habitId: String,
+  date: String
+}));
+
+// Log a habit
+app.post("/api/habit-log", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { habitId, date } = req.body;
+  if (!userId || !habitId) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const today = date || new Date().toISOString().split("T")[0];
+    const log = await HabitLog.create({ userId, habitId, date: today });
+    res.status(201).json(log);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get user's habit logs
+app.get("/api/habit-log", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+
+  try {
+    const logs = await HabitLog.find({ userId });
+    res.json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Report model
+const Report = mongoose.model("Report", new mongoose.Schema({
+  userId: String,
+  date: String,
+  content: String
+}));
+
+// Get all reports
+app.get("/api/reports", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+
+  try {
+    const reports = await Report.find({ userId }).sort({ date: -1 });
+    res.json(reports);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Generate a new report (mock content)
+app.post("/api/reports", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+
+  const date = new Date().toISOString();
+  try {
+    const content = "This is a sample AI-generated report.";
+    const report = await Report.create({ userId, date, content });
+    res.status(201).json(report);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Streak route (mocked for now)
+app.get("/api/streaks", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+
+  res.json({ daily: 3, weekly: 1, monthly: 0 }); // mock data
+});
+
+// Onboarding model
+const Onboarding = mongoose.model("Onboarding", new mongoose.Schema({
+  userId: String,
+  objective: String
+}));
+
+// Save onboarding objective
+app.post("/api/onboarding", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { objective } = req.body;
+  if (!userId || !objective) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const doc = await Onboarding.findOneAndUpdate(
+      { userId },
+      { objective },
+      { upsert: true, new: true }
+    );
+    res.status(200).json(doc);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get onboarding objective
+app.get("/api/onboarding", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+
+  try {
+    const doc = await Onboarding.findOne({ userId });
+    res.status(200).json(doc);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
