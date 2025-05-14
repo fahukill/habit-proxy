@@ -339,7 +339,7 @@ app.post("/api/habit-log", async (req, res) => {
   if (!userId || !habitId) return res.status(400).json({ error: "Missing required fields" });
 
   try {
-    const Log = mongoose.model("HabitLog", new mongoose.Schema({
+    const Log = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
       habitId: String,
       userId: String,
       note: String,
@@ -359,7 +359,12 @@ app.get("/api/habit-log", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
 
   try {
-    const Log = mongoose.model("HabitLog");
+    const Log = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
+  habitId: String,
+  userId: String,
+  note: String,
+  date: { type: Date, default: () => new Date() }
+}));
     const logs = await Log.find({ userId }).sort({ date: -1 });
     res.json(logs);
   } catch (err) {
@@ -392,7 +397,7 @@ app.post("/api/onboarding", async (req, res) => {
   const { objective } = req.body;
   if (!userId || !objective) return res.status(400).json({ error: "Missing fields" });
 
-  const Onboarding = mongoose.model("Objective", new mongoose.Schema({
+  const Onboarding = mongoose.models.Objective || mongoose.model("Objective", new mongoose.Schema({
     userId: String,
     objective: String
   }));
@@ -419,7 +424,7 @@ app.get("/api/onboarding", async (req, res) => {
 
 
 // Report model
-const Report = mongoose.model("Report", new mongoose.Schema({
+const Report = mongoose.models.Report || mongoose.model("Report", new mongoose.Schema({
   userId: String,
   content: String,
   tags: [String],
@@ -471,7 +476,12 @@ app.post("/api/cron/generate-reports", async (req, res) => {
 });
 
 // Habit log model and streak calculation
-const Log = mongoose.model("HabitLog");
+const Log = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
+  habitId: String,
+  userId: String,
+  note: String,
+  date: { type: Date, default: () => new Date() }
+}));
 app.get("/api/streaks", async (req, res) => {
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
