@@ -331,20 +331,25 @@ app.delete("/api/user", async (req, res) => {
   }
 });
 
-
 // Log a habit entry
 app.post("/api/habit-log", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { habitId, note = "" } = req.body;
-  if (!userId || !habitId) return res.status(400).json({ error: "Missing required fields" });
+  if (!userId || !habitId)
+    return res.status(400).json({ error: "Missing required fields" });
 
   try {
-    const Log = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
-      habitId: String,
-      userId: String,
-      note: String,
-      date: { type: Date, default: () => new Date() }
-    }));
+    const Log =
+      mongoose.models.HabitLog ||
+      mongoose.model(
+        "HabitLog",
+        new mongoose.Schema({
+          habitId: String,
+          userId: String,
+          note: String,
+          date: { type: Date, default: () => new Date() },
+        })
+      );
     await Log.create({ habitId, userId, note });
     res.status(201).json({ success: true });
   } catch (err) {
@@ -359,12 +364,17 @@ app.get("/api/habit-log", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
 
   try {
-    const Log = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
-  habitId: String,
-  userId: String,
-  note: String,
-  date: { type: Date, default: () => new Date() }
-}));
+    const Log =
+      mongoose.models.HabitLog ||
+      mongoose.model(
+        "HabitLog",
+        new mongoose.Schema({
+          habitId: String,
+          userId: String,
+          note: String,
+          date: { type: Date, default: () => new Date() },
+        })
+      );
     const logs = await Log.find({ userId }).sort({ date: -1 });
     res.json(logs);
   } catch (err) {
@@ -378,7 +388,9 @@ app.post("/api/reports", async (req, res) => {
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
 
-  res.status(201).json({ message: "Your personalized report has been generated." });
+  res
+    .status(201)
+    .json({ message: "Your personalized report has been generated." });
 });
 
 // Get saved reports (placeholder)
@@ -388,19 +400,28 @@ app.get("/api/reports", async (req, res) => {
 
 // Get streaks (mocked)
 app.get("/api/streaks", async (req, res) => {
-  res.json([{ habit: "Run", streak: 5 }, { habit: "Read", streak: 3 }]);
+  res.json([
+    { habit: "Run", streak: 5 },
+    { habit: "Read", streak: 3 },
+  ]);
 });
 
 // Save onboarding objective
 app.post("/api/onboarding", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { objective } = req.body;
-  if (!userId || !objective) return res.status(400).json({ error: "Missing fields" });
+  if (!userId || !objective)
+    return res.status(400).json({ error: "Missing fields" });
 
-  const Onboarding = mongoose.models.Objective || mongoose.model("Objective", new mongoose.Schema({
-    userId: String,
-    objective: String
-  }));
+  const Onboarding =
+    mongoose.models.Objective ||
+    mongoose.model(
+      "Objective",
+      new mongoose.Schema({
+        userId: String,
+        objective: String,
+      })
+    );
 
   await Onboarding.findOneAndUpdate(
     { userId },
@@ -416,20 +437,9 @@ app.get("/api/onboarding", async (req, res) => {
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
 
-  const Onboarding = mongoose.model("Objective");
   const entry = await Onboarding.findOne({ userId });
   res.json(entry || {});
 });
-
-
-
-// Report model
-const Report = mongoose.models.Report || mongoose.model("Report", new mongoose.Schema({
-  userId: String,
-  content: String,
-  tags: [String],
-  date: { type: Date, default: () => new Date() }
-}));
 
 // Generate and save AI report (real model, placeholder logic)
 app.post("/api/reports", async (req, res) => {
@@ -476,12 +486,17 @@ app.post("/api/cron/generate-reports", async (req, res) => {
 });
 
 // Habit log model and streak calculation
-const Log = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
-  habitId: String,
-  userId: String,
-  note: String,
-  date: { type: Date, default: () => new Date() }
-}));
+const Log =
+  mongoose.models.HabitLog ||
+  mongoose.model(
+    "HabitLog",
+    new mongoose.Schema({
+      habitId: String,
+      userId: String,
+      note: String,
+      date: { type: Date, default: () => new Date() },
+    })
+  );
 app.get("/api/streaks", async (req, res) => {
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
@@ -509,12 +524,13 @@ app.get("/api/streaks", async (req, res) => {
   }
 });
 
-
 const { Configuration, OpenAIApi } = require("openai");
 
-const openai = new OpenAIApi(new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-}));
+const openai = new OpenAIApi(
+  new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+);
 
 // AI-powered report generation
 app.post("/api/reports", async (req, res) => {
@@ -523,18 +539,30 @@ app.post("/api/reports", async (req, res) => {
 
   try {
     const logs = await Log.find({ userId }).sort({ date: -1 }).limit(50);
-    const logText = logs.map(log => `- ${log.habitId}: ${log.note || "No notes"} (${new Date(log.date).toLocaleDateString("en-US")})`).join("\n");
+    const logText = logs
+      .map(
+        (log) =>
+          `- ${log.habitId}: ${log.note || "No notes"} (${new Date(
+            log.date
+          ).toLocaleDateString("en-US")})`
+      )
+      .join("\n");
 
-    const prompt = \`You are a motivational wellness coach. Based on the user's recent habit logs, write a short 2-paragraph report that summarizes their efforts and encourages them to continue.\n\nHabit logs:\n\${logText}\`;
+    const prompt = `You are a motivational wellness coach. Based on the user's recent habit logs, write a short 2-paragraph report that summarizes their efforts and encourages them to continue.\n\nHabit logs:\n${logText}`;
 
     const completion = await openai.createChatCompletion({
       model: "gpt-4",
       messages: [{ role: "user", content: prompt }],
     });
 
-    const content = completion.data.choices[0]?.message?.content || "AI report unavailable.";
+    const content =
+      completion.data.choices[0]?.message?.content || "AI report unavailable.";
 
-    const report = await Report.create({ userId, content, tags: ["ai", "openai"] });
+    const report = await Report.create({
+      userId,
+      content,
+      tags: ["ai", "openai"],
+    });
     res.status(201).json(report);
   } catch (err) {
     console.error("OpenAI report error:", err);
