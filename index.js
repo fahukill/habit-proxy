@@ -249,3 +249,10 @@ app.post("/api/onboarding", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+app.post("/api/login", async (req, res) => {
+  console.log("RAW BODY RECEIVED:", req.body); // ✅ Safe now
+
+  const { email, password } = req.body;
+  console.log("▶️ Login attempt:", email);
+});
