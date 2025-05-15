@@ -1,3 +1,4 @@
+app.use(express.json()); // This parses JSON request bodies
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
