@@ -5,12 +5,22 @@ const bcrypt = require("bcryptjs");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const OpenAI = require("openai");
 
-const app = express();
 const port = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 
-app.use(cors());
-app.use(express.json());
+const cors = require("cors");
+
+const app = express();
+
+app.use(
+  cors({
+    origin: "https://www.habitsyncai.com",
+    methods: ["GET", "POST", "OPTIONS", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
+  })
+);
+
+app.options("*", cors()); // Allow preflight
 
 mongoose
   .connect(process.env.MONGODB_URI || "", { dbName: "habit-sync-ai" })
