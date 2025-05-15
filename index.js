@@ -214,3 +214,66 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+//Console logs
+app.post("/api/users", async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    subscription = "Free",
+  } = req.body;
+
+  console.log("▶️ Received signup request:", {
+    firstName,
+    lastName,
+    email,
+    subscription,
+  });
+
+  if (!firstName || !lastName || !email || !password) {
+    console.warn("❌ Missing fields in signup");
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      console.warn("⚠️ Email already in use:", email);
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User.create({
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      subscription,
+    });
+
+    console.log("✅ User created:", newUser._id.toString());
+
+    if (["Pro", "Coach"].includes(subscription)) {
+      try {
+        const customer = await stripe.customers.create({
+          email,
+          name: `${firstName} ${lastName}`,
+          metadata: {
+            userId: newUser._id.toString(),
+            tier: subscription,
+          },
+        });
+        console.log("💳 Stripe customer created:", customer.id);
+      } catch (stripeErr) {
+        console.error("🚨 Stripe error:", stripeErr.message);
+      }
+    }
+
+    return res.status(201).json({ id: newUser._id });
+  } catch (err) {
+    console.error("🔥 Signup error:", err.message || err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
