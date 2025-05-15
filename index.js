@@ -214,3 +214,25 @@ app.post("/api/reports", async (req, res) => {
     res.status(500).json({ error: "AI generation failed" });
   }
 });
+
+// Endpoint to handle onboarding data
+app.post("/api/onboarding", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { objective } = req.body;
+
+  if (!userId || !objective) {
+    return res.status(400).json({ error: "Missing data" });
+  }
+
+  try {
+    const doc = await Onboarding.findOneAndUpdate(
+      { userId },
+      { objective },
+      { upsert: true, new: true }
+    );
+    res.status(200).json(doc);
+  } catch (err) {
+    console.error("🧨 Onboarding save failed:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
