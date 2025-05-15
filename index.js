@@ -1,4 +1,3 @@
-app.use(express.json()); // This parses JSON request bodies
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -11,6 +10,21 @@ const API_KEY = process.env.API_KEY;
 
 const app = express();
 
+const Onboarding =
+  mongoose.models.Onboarding ||
+  mongoose.model(
+    "Onboarding",
+    new mongoose.Schema({
+      userId: String,
+      objective: String,
+      name: String,
+      timezone: String,
+      habits: Array,
+      motivation: String,
+    })
+  );
+
+app.use(express.json()); // This parses JSON request bodies
 app.use(
   cors({
     origin: "https://www.habitsyncai.com",
