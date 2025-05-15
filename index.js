@@ -134,3 +134,51 @@ app.post("/api/reports", async (req, res) => {
     res.status(500).json({ error: "AI generation failed" });
   }
 });
+
+// Create new user
+app.post("/api/users", async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    subscription = "Free",
+  } = req.body;
+
+  if (!firstName || !lastName || !email || !password) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User.create({
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      subscription,
+    });
+
+    // Create Stripe customer if needed
+    if (["Pro", "Coach"].includes(subscription)) {
+      await stripe.customers.create({
+        email,
+        name: `${firstName} ${lastName}`,
+        metadata: {
+          userId: newUser._id.toString(),
+          tier: subscription,
+        },
+      });
+    }
+
+    res.status(201).json({ id: newUser._id });
+  } catch (err) {
+    console.error("User creation failed:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
