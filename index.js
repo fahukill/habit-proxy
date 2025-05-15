@@ -101,13 +101,9 @@ app.listen(port, () => {
 });
 
 app.post("/api/user", async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    password,
-    subscription = "Free",
-  } = req.body;
+  const { firstName, lastName, email, password } = req.body;
+
+  const subscription = (req.body.subscription || "Free").trim();
   console.log("▶️ Received signup request:", {
     firstName,
     lastName,
@@ -248,11 +244,4 @@ app.post("/api/onboarding", async (req, res) => {
     console.error("🧨 Onboarding save failed:", err);
     res.status(500).json({ error: "Server error" });
   }
-});
-
-app.post("/api/login", async (req, res) => {
-  console.log("RAW BODY RECEIVED:", req.body); // ✅ Safe now
-
-  const { email, password } = req.body;
-  console.log("▶️ Login attempt:", email);
 });
