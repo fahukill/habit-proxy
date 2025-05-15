@@ -136,7 +136,7 @@ app.post("/api/reports", async (req, res) => {
 });
 
 // Create new user
-app.post("/api/users", async (req, res) => {
+app.post("/api/user", async (req, res) => {
   const {
     firstName,
     lastName,
