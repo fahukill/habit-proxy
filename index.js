@@ -1,4 +1,3 @@
-
 // Fixed version with corrected syntax and cleaned structure
 const express = require("express");
 const mongoose = require("mongoose");
@@ -14,43 +13,75 @@ const API_KEY = process.env.API_KEY;
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGODB_URI || "", {
-  dbName: "habit-sync-ai",
-}).then(() => console.log("MongoDB connected"))
+mongoose
+  .connect(process.env.MONGODB_URI || "", {
+    dbName: "habit-sync-ai",
+  })
+  .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Models
-const User = mongoose.models.User || mongoose.model("User", new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  subscription: { type: String, enum: ["Free", "Pro", "Coach"], default: "Free" },
-}));
+const User =
+  mongoose.models.User ||
+  mongoose.model(
+    "User",
+    new mongoose.Schema({
+      firstName: String,
+      lastName: String,
+      email: String,
+      password: String,
+      subscription: {
+        type: String,
+        enum: ["Free", "Pro", "Coach"],
+        default: "Free",
+      },
+    })
+  );
 
-const Habit = mongoose.models.Habit || mongoose.model("Habit", new mongoose.Schema({
-  name: String,
-  frequency: { type: String, enum: ["daily", "weekly", "monthly"] },
-  userId: String,
-}));
+const Habit =
+  mongoose.models.Habit ||
+  mongoose.model(
+    "Habit",
+    new mongoose.Schema({
+      name: String,
+      frequency: { type: String, enum: ["daily", "weekly", "monthly"] },
+      userId: String,
+    })
+  );
 
-const HabitLog = mongoose.models.HabitLog || mongoose.model("HabitLog", new mongoose.Schema({
-  habitId: String,
-  userId: String,
-  note: String,
-  date: { type: Date, default: () => new Date() },
-}));
+const HabitLog =
+  mongoose.models.HabitLog ||
+  mongoose.model(
+    "HabitLog",
+    new mongoose.Schema({
+      habitId: String,
+      userId: String,
+      note: String,
+      date: { type: Date, default: () => new Date() },
+    })
+  );
 
-const Report = mongoose.models.Report || mongoose.model("Report", new mongoose.Schema({
-  userId: String,
-  content: String,
-  tags: [String],
-  date: { type: Date, default: () => new Date() },
-}));
+const Report =
+  mongoose.models.Report ||
+  mongoose.model(
+    "Report",
+    new mongoose.Schema({
+      userId: String,
+      content: String,
+      tags: [String],
+      date: { type: Date, default: () => new Date() },
+    })
+  );
 
-const Onboarding = mongoose.models.Onboarding || mongoose.model("Onboarding", new mongoose.Schema({
-  userId: String,
-  objective: String,
-}));
+const Onboarding =
+  mongoose.models.Onboarding ||
+  mongoose.model(
+    "Onboarding",
+    new mongoose.Schema({
+      userId: String,
+      objective: String,
+    })
+  );
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -78,9 +109,14 @@ app.post("/api/reports", async (req, res) => {
 
   try {
     const logs = await HabitLog.find({ userId }).sort({ date: -1 }).limit(50);
-    const logText = logs.map(
-      (log) => `- ${log.habitId}: ${log.note || "No notes"} (${new Date(log.date).toLocaleDateString("en-US")})`
-    ).join("\n");
+    const logText = logs
+      .map(
+        (log) =>
+          `- ${log.habitId}: ${log.note || "No notes"} (${new Date(
+            log.date
+          ).toLocaleDateString("en-US")})`
+      )
+      .join("\n");
 
     const prompt = `You are a motivational wellness coach. Based on the user's recent habit logs, write a short 2-paragraph report that summarizes their efforts and encourages them to continue.\n\nHabit logs:\n${logText}`;
 
@@ -89,7 +125,8 @@ app.post("/api/reports", async (req, res) => {
       messages: [{ role: "user", content: prompt }],
     });
 
-    const content = completion.choices?.[0]?.message?.content || "AI report unavailable.";
+    const content =
+      completion.choices?.[0]?.message?.content || "AI report unavailable.";
     const report = await Report.create({ userId, content, tags: ["ai"] });
     res.status(201).json(report);
   } catch (err) {
