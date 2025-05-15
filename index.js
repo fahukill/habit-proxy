@@ -245,3 +245,37 @@ app.post("/api/onboarding", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+//Habits
+const Habit =
+  mongoose.models.Habit ||
+  mongoose.model(
+    "Habit",
+    new mongoose.Schema({
+      userId: String,
+      name: String,
+      frequency: {
+        type: String,
+        enum: ["daily", "weekly", "monthly"],
+        required: true,
+      },
+      days: [String],
+      createdAt: { type: Date, default: () => new Date() },
+    })
+  );
+
+app.post("/api/habits", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { name, frequency, days } = req.body;
+
+  if (!userId || !name || !frequency) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const habit = await Habit.create({ userId, name, frequency, days });
+    res.status(201).json(habit);
+  } catch (err) {
+    console.error("🔥 Habit save error:", err);
+    res.status(500).json({ error: "Failed to save habit" });
+  }
+});
