@@ -216,7 +216,7 @@ app.post("/api/login", async (req, res) => {
 });
 
 //Console logs
-app.post("/api/users", async (req, res) => {
+app.post("/api/user", async (req, res) => {
   const {
     firstName,
     lastName,
