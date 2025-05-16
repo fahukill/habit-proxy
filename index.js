@@ -366,3 +366,8 @@ app.get("/api/habit-logs", async (req, res) => {
     res.status(500).json({ error: "Failed to load logs" });
   }
 });
+app.get("/api/objective", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const obj = await Onboarding.findOne({ userId });
+  res.json({ objective: obj?.objective || "" });
+});
