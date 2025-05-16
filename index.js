@@ -279,3 +279,90 @@ app.post("/api/habits", async (req, res) => {
     res.status(500).json({ error: "Failed to save habit" });
   }
 });
+app.get("/api/habits", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const habits = await Habit.find({ userId });
+    res.json(habits);
+  } catch (err) {
+    console.error("🔥 Error loading habits:", err);
+    res.status(500).json({ error: "Failed to load habits" });
+  }
+});
+app.put("/api/habits/:id", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { id } = req.params;
+  const { name, frequency, days, goal } = req.body;
+
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const habit = await Habit.findOneAndUpdate(
+      { _id: id, userId },
+      { name, frequency, days, goal },
+      { new: true }
+    );
+    res.json(habit);
+  } catch (err) {
+    console.error("🔥 Update error:", err);
+    res.status(500).json({ error: "Failed to update habit" });
+  }
+});
+app.delete("/api/habits/:id", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { id } = req.params;
+
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    await Habit.deleteOne({ _id: id, userId });
+    res.status(204).end();
+  } catch (err) {
+    console.error("🔥 Delete error:", err);
+    res.status(500).json({ error: "Failed to delete habit" });
+  }
+});
+app.post("/api/habit-logs", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { habitId, date, note } = req.body;
+
+  if (!userId || !habitId || !date) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  try {
+    const log = await HabitLog.create({ userId, habitId, date, note });
+    res.status(201).json(log);
+  } catch (err) {
+    console.error("🔥 Log error:", err);
+    res.status(500).json({ error: "Failed to save log" });
+  }
+});
+app.get("/api/habit-logs", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { start, end } = req.query;
+
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const query = {
+    userId,
+    ...(start && end
+      ? {
+          date: {
+            $gte: new Date(start),
+            $lte: new Date(end),
+          },
+        }
+      : {}),
+  };
+
+  try {
+    const logs = await HabitLog.find(query);
+    res.json(logs);
+  } catch (err) {
+    console.error("🔥 Load logs error:", err);
+    res.status(500).json({ error: "Failed to load logs" });
+  }
+});
