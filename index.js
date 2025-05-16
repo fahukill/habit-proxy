@@ -10,6 +10,14 @@ const API_KEY = process.env.API_KEY;
 
 const app = express();
 
+const { z } = require("zod");
+
+const LogEntrySchema = z.object({
+  habitId: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
+  note: z.string().optional(),
+});
+
 /* ----------------------------- MODELS ----------------------------- */
 const Onboarding =
   mongoose.models.Onboarding ||
@@ -257,16 +265,27 @@ app.delete("/api/habits/:id", async (req, res) => {
 /* ----------------------------- ROUTES: HABIT LOGS ----------------------------- */
 app.post("/api/habit-logs", async (req, res) => {
   const userId = req.headers["x-user-id"];
-  const { habitId, date, note } = req.body;
 
-  if (!userId || !habitId || !date) {
-    return res.status(400).json({ error: "Missing fields" });
+  // Combine the userId into the body for validation
+  const result = LogEntrySchema.safeParse({
+    ...req.body,
+    userId,
+  });
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: "Validation failed",
+      details: result.error.flatten(),
+    });
   }
+
+  const { habitId, date, note } = result.data;
 
   try {
     const log = await HabitLog.create({ userId, habitId, date, note });
     res.status(201).json(log);
   } catch (err) {
+    console.error("🔥 Error saving log:", err);
     res.status(500).json({ error: "Failed to save log" });
   }
 });
