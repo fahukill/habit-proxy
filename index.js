@@ -425,13 +425,6 @@ app.patch("/api/habit-logs/:id", async (req, res) => {
   }
 });
 
-habitLogs.map((log) => ({
-  _id: log._id,
-  habitId: log.habitId,
-  note: log.note,
-  date: log.date, // must be here and valid
-}));
-
 app.delete("/api/habit-logs/:id", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { id } = req.params;
