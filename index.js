@@ -10,6 +10,7 @@ const API_KEY = process.env.API_KEY;
 
 const app = express();
 
+/* ----------------------------- MODELS ----------------------------- */
 const Onboarding =
   mongoose.models.Onboarding ||
   mongoose.model(
@@ -24,21 +25,16 @@ const Onboarding =
     })
   );
 
-app.use(express.json()); // This parses JSON request bodies
-app.use(
-  cors({
-    origin: "https://www.habitsyncai.com",
-    methods: ["GET", "POST", "OPTIONS", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
-  })
-);
-
-app.options("*", cors()); // Allow preflight
-
-mongoose
-  .connect(process.env.MONGODB_URI || "", { dbName: "habit-sync-ai" })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+const Motivation =
+  mongoose.models.Motivation ||
+  mongoose.model(
+    "Motivation",
+    new mongoose.Schema({
+      userId: String,
+      message: String,
+      date: String,
+    })
+  );
 
 const User =
   mongoose.models.User ||
@@ -54,6 +50,23 @@ const User =
         enum: ["Free", "Pro", "Coach"],
         default: "Free",
       },
+    })
+  );
+
+const Habit =
+  mongoose.models.Habit ||
+  mongoose.model(
+    "Habit",
+    new mongoose.Schema({
+      userId: String,
+      name: String,
+      frequency: {
+        type: String,
+        enum: ["daily", "weekly", "monthly"],
+        required: true,
+      },
+      days: [String],
+      createdAt: { type: Date, default: () => new Date() },
     })
   );
 
@@ -83,6 +96,21 @@ const Report =
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+/* ----------------------------- MIDDLEWARE ----------------------------- */
+app.use(express.json());
+app.use(
+  cors({
+    origin: "https://www.habitsyncai.com",
+    methods: ["GET", "POST", "OPTIONS", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
+  })
+);
+app.options("*", cors());
+mongoose
+  .connect(process.env.MONGODB_URI || "", { dbName: "habit-sync-ai" })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
 app.use((req, res, next) => {
   const clientKey = req.headers["authorization"];
   if (clientKey !== `Bearer ${API_KEY}`) {
@@ -91,35 +119,20 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/", (req, res) => {
-  res.send("HabitSyncAI Proxy API is running.");
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log("✅ Proxy booted. Listening on /api/* routes...");
-});
-
+/* ----------------------------- ROUTES ----------------------------- */
+// Will complete next
+/* ----------------------------- ROUTES: AUTH ----------------------------- */
 app.post("/api/user", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
-
   const subscription = (req.body.subscription || "Free").trim();
-  console.log("▶️ Received signup request:", {
-    firstName,
-    lastName,
-    email,
-    subscription,
-  });
 
   if (!firstName || !lastName || !email || !password) {
-    console.warn("❌ Missing fields in signup");
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      console.warn("⚠️ Email already in use:", email);
       return res.status(409).json({ message: "Email already in use" });
     }
 
@@ -132,52 +145,39 @@ app.post("/api/user", async (req, res) => {
       subscription,
     });
 
-    console.log("✅ User created:", newUser._id.toString());
-
     if (["Pro", "Coach"].includes(subscription)) {
       try {
-        const customer = await stripe.customers.create({
+        await stripe.customers.create({
           email,
           name: `${firstName} ${lastName}`,
-          metadata: {
-            userId: newUser._id.toString(),
-            tier: subscription,
-          },
+          metadata: { userId: newUser._id.toString(), tier: subscription },
         });
-        console.log("💳 Stripe customer created:", customer.id);
       } catch (stripeErr) {
-        console.error("🚨 Stripe error:", stripeErr.message);
+        console.error("Stripe error:", stripeErr.message);
       }
     }
 
     return res.status(201).json({ id: newUser._id });
   } catch (err) {
-    console.error("🔥 Signup error:", err.message || err);
+    console.error("Signup error:", err.message || err);
     return res.status(500).json({ message: "Server error" });
   }
 });
 
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log("▶️ Login attempt:", email);
 
   if (!email || !password) {
-    console.warn("❌ Missing login fields");
     return res.status(400).json({ message: "Missing credentials" });
   }
 
   try {
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      console.warn("❌ No user found for:", email);
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.warn("❌ Incorrect password for:", email);
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid credentials" });
 
     res.json({
       id: user._id,
@@ -187,44 +187,118 @@ app.post("/api/login", async (req, res) => {
       subscription: user.subscription,
     });
   } catch (err) {
-    console.error("🔥 Login error:", err.message || err);
+    console.error("Login error:", err.message || err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-app.post("/api/reports", async (req, res) => {
+/* ----------------------------- ROUTES: HABITS ----------------------------- */
+app.post("/api/habits", async (req, res) => {
   const userId = req.headers["x-user-id"];
-  if (!userId) return res.status(400).json({ error: "Missing user ID" });
+  const { name, frequency, days } = req.body;
+
+  if (!userId || !name || !frequency) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
   try {
-    const logs = await HabitLog.find({ userId }).sort({ date: -1 }).limit(50);
-    const logText = logs
-      .map(
-        (log) =>
-          `- ${log.habitId}: ${log.note || "No notes"} (${new Date(
-            log.date
-          ).toLocaleDateString("en-US")})`
-      )
-      .join("\n");
-
-    const prompt = `You are a motivational wellness coach. Based on the user's recent habit logs, write a short 2-paragraph report that summarizes their efforts and encourages them to continue.\n\nHabit logs:\n${logText}`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const content =
-      completion.choices?.[0]?.message?.content || "AI report unavailable.";
-    const report = await Report.create({ userId, content, tags: ["ai"] });
-    res.status(201).json(report);
+    const habit = await Habit.create({ userId, name, frequency, days });
+    res.status(201).json(habit);
   } catch (err) {
-    console.error("OpenAI report error:", err);
-    res.status(500).json({ error: "AI generation failed" });
+    res.status(500).json({ error: "Failed to save habit" });
   }
 });
 
-// Endpoint to handle onboarding data
+app.get("/api/habits", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const habits = await Habit.find({ userId });
+    res.json(habits);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load habits" });
+  }
+});
+
+app.put("/api/habits/:id", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { id } = req.params;
+  const { name, frequency, days, goal } = req.body;
+
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const habit = await Habit.findOneAndUpdate(
+      { _id: id, userId },
+      { name, frequency, days, goal },
+      { new: true }
+    );
+    res.json(habit);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update habit" });
+  }
+});
+
+app.delete("/api/habits/:id", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { id } = req.params;
+
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    await Habit.deleteOne({ _id: id, userId });
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete habit" });
+  }
+});
+
+/* ----------------------------- ROUTES: HABIT LOGS ----------------------------- */
+app.post("/api/habit-logs", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { habitId, date, note } = req.body;
+
+  if (!userId || !habitId || !date) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  try {
+    const log = await HabitLog.create({ userId, habitId, date, note });
+    res.status(201).json(log);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save log" });
+  }
+});
+
+app.get("/api/habit-logs", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { start, end } = req.query;
+
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const query = {
+    userId,
+    ...(start && end
+      ? { date: { $gte: new Date(start), $lte: new Date(end) } }
+      : {}),
+  };
+
+  try {
+    const logs = await HabitLog.find(query);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load logs" });
+  }
+});
+
+/* ----------------------------- ROUTES: OBJECTIVE / ONBOARDING ----------------------------- */
+app.get("/api/objective", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const obj = await Onboarding.findOne({ userId });
+  res.json({ objective: obj?.objective || "" });
+});
+
 app.post("/api/onboarding", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { objective } = req.body;
@@ -241,133 +315,90 @@ app.post("/api/onboarding", async (req, res) => {
     );
     res.status(200).json(doc);
   } catch (err) {
-    console.error("🧨 Onboarding save failed:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
-//Habits
-const Habit =
-  mongoose.models.Habit ||
-  mongoose.model(
-    "Habit",
-    new mongoose.Schema({
-      userId: String,
-      name: String,
-      frequency: {
-        type: String,
-        enum: ["daily", "weekly", "monthly"],
-        required: true,
-      },
-      days: [String],
-      createdAt: { type: Date, default: () => new Date() },
-    })
-  );
 
-app.post("/api/habits", async (req, res) => {
+/* ----------------------------- ROUTES: AI REPORT / ENCOURAGEMENT ----------------------------- */
+app.post("/api/reports", async (req, res) => {
   const userId = req.headers["x-user-id"];
-  const { name, frequency, days } = req.body;
-
-  if (!userId || !name || !frequency) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+  if (!userId) return res.status(400).json({ error: "Missing user ID" });
 
   try {
-    const habit = await Habit.create({ userId, name, frequency, days });
-    res.status(201).json(habit);
+    const logs = await HabitLog.find({ userId }).sort({ date: -1 }).limit(50);
+    const logText = logs
+      .map(
+        (log) =>
+          `- ${log.habitId}: ${log.note || "No notes"} (${new Date(
+            log.date
+          ).toLocaleDateString("en-US")})`
+      )
+      .join("\n");
+
+    const prompt = `You are a motivational wellness coach. Based on the user's recent habit logs, write a short 2-paragraph report that summarizes their efforts and encourages them to continue.
+
+Habit logs:
+${logText}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content =
+      completion.choices?.[0]?.message?.content || "AI report unavailable.";
+    const report = await Report.create({ userId, content, tags: ["ai"] });
+    res.status(201).json(report);
   } catch (err) {
-    console.error("🔥 Habit save error:", err);
-    res.status(500).json({ error: "Failed to save habit" });
+    res.status(500).json({ error: "AI generation failed" });
   }
 });
-app.get("/api/habits", async (req, res) => {
+
+app.get("/api/encouragement", async (req, res) => {
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-  try {
-    const habits = await Habit.find({ userId });
-    res.json(habits);
-  } catch (err) {
-    console.error("🔥 Error loading habits:", err);
-    res.status(500).json({ error: "Failed to load habits" });
-  }
+  const today = new Date().toISOString().split("T")[0];
+  const existing = await Motivation.findOne({ userId, date: today });
+  if (existing) return res.json({ message: existing.message });
+
+  const user = await User.findById(userId);
+  const habits = await Habit.find({ userId });
+  const logs = await HabitLog.find({ userId });
+
+  const streakCount = logs.length;
+  const prompt = `
+You're an encouraging wellness coach. Write 1–2 short sentences of personalized motivation.
+
+User: ${user?.firstName || "friend"}
+Habits:
+${habits.map((h) => `• ${h.name} — ${h.goal || "No goal provided"}`).join("\n")}
+
+This user has logged ${streakCount} habit entries.
+
+Respond as if you're speaking directly to ${
+    user?.firstName || "them"
+  }, with warmth, motivation, and support.
+`;
+
+  const aiRes = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [{ role: "system", content: prompt }],
+  });
+
+  const message =
+    aiRes.choices[0]?.message?.content?.trim() ||
+    "Keep pushing forward, you're doing great!";
+
+  await Motivation.create({ userId, message, date: today });
+  res.json({ message });
 });
-app.put("/api/habits/:id", async (req, res) => {
-  const userId = req.headers["x-user-id"];
-  const { id } = req.params;
-  const { name, frequency, days, goal } = req.body;
 
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-  try {
-    const habit = await Habit.findOneAndUpdate(
-      { _id: id, userId },
-      { name, frequency, days, goal },
-      { new: true }
-    );
-    res.json(habit);
-  } catch (err) {
-    console.error("🔥 Update error:", err);
-    res.status(500).json({ error: "Failed to update habit" });
-  }
+/* ----------------------------- ROUTES: DEFAULT ----------------------------- */
+app.get("/", (req, res) => {
+  res.send("HabitSyncAI Proxy API is running.");
 });
-app.delete("/api/habits/:id", async (req, res) => {
-  const userId = req.headers["x-user-id"];
-  const { id } = req.params;
 
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-  try {
-    await Habit.deleteOne({ _id: id, userId });
-    res.status(204).end();
-  } catch (err) {
-    console.error("🔥 Delete error:", err);
-    res.status(500).json({ error: "Failed to delete habit" });
-  }
-});
-app.post("/api/habit-logs", async (req, res) => {
-  const userId = req.headers["x-user-id"];
-  const { habitId, date, note } = req.body;
-
-  if (!userId || !habitId || !date) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-
-  try {
-    const log = await HabitLog.create({ userId, habitId, date, note });
-    res.status(201).json(log);
-  } catch (err) {
-    console.error("🔥 Log error:", err);
-    res.status(500).json({ error: "Failed to save log" });
-  }
-});
-app.get("/api/habit-logs", async (req, res) => {
-  const userId = req.headers["x-user-id"];
-  const { start, end } = req.query;
-
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-  const query = {
-    userId,
-    ...(start && end
-      ? {
-          date: {
-            $gte: new Date(start),
-            $lte: new Date(end),
-          },
-        }
-      : {}),
-  };
-
-  try {
-    const logs = await HabitLog.find(query);
-    res.json(logs);
-  } catch (err) {
-    console.error("🔥 Load logs error:", err);
-    res.status(500).json({ error: "Failed to load logs" });
-  }
-});
-app.get("/api/objective", async (req, res) => {
-  const userId = req.headers["x-user-id"];
-  const obj = await Onboarding.findOne({ userId });
-  res.json({ objective: obj?.objective || "" });
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
