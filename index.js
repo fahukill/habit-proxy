@@ -402,3 +402,49 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+app.patch("/api/habit-logs/:id", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { id } = req.params;
+  const { note } = req.body;
+
+  if (!userId || !id || typeof note !== "string") {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const updated = await HabitLog.findOneAndUpdate(
+      { _id: id, userId },
+      { note },
+      { new: true }
+    );
+    res.status(200).json(updated);
+  } catch (err) {
+    console.error("🔥 Failed to update note:", err);
+    res.status(500).json({ error: "Failed to update note" });
+  }
+});
+
+habitLogs.map((log) => ({
+  _id: log._id,
+  habitId: log.habitId,
+  note: log.note,
+  date: log.date, // must be here and valid
+}));
+
+app.delete("/api/habit-logs/:id", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { id } = req.params;
+
+  if (!userId || !id) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    await HabitLog.deleteOne({ _id: id, userId });
+    res.status(204).end();
+  } catch (err) {
+    console.error("🔥 Failed to delete note:", err);
+    res.status(500).json({ error: "Failed to delete note" });
+  }
+});
