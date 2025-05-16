@@ -279,7 +279,20 @@ app.post("/api/habit-logs", async (req, res) => {
     });
   }
 
-  const { habitId, date, note } = result.data;
+  let { habitId, date, note, timezone } = result.data;
+
+  if (!date && timezone) {
+    try {
+      const now = new Date();
+      const localDate = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: timezone,
+      }).format(now);
+      date = localDate; // e.g. "2024-06-16"
+    } catch {
+      console.warn("⚠️ Invalid timezone provided:", timezone);
+      date = new Date().toLocaleDateString("sv-SE");
+    }
+  }
 
   try {
     const log = await HabitLog.create({ userId, habitId, date, note });
@@ -340,18 +353,19 @@ app.post("/api/onboarding", async (req, res) => {
 
 /* ----------------------------- ROUTES: AI REPORT / ENCOURAGEMENT ----------------------------- */
 app.post("/api/reports", async (req, res) => {
+  const timezone = req.headers["x-timezone"] || "UTC";
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(400).json({ error: "Missing user ID" });
 
   try {
     const logs = await HabitLog.find({ userId }).sort({ date: -1 }).limit(50);
     const logText = logs
-      .map(
-        (log) =>
-          `- ${log.habitId}: ${log.note || "No notes"} (${new Date(
-            log.date
-          ).toLocaleDateString("en-US")})`
-      )
+      .map((log) => {
+        const localDate = new Intl.DateTimeFormat("sv-SE", {
+          timeZone: timezone,
+        }).format(new Date(log.date));
+        return `- ${log.habitId}: ${log.note || "No notes"} (${localDate})`;
+      })
       .join("\n");
 
     const prompt = `You are a motivational wellness coach. Based on the user's recent habit logs, write a short 2-paragraph report that summarizes their efforts and encourages them to continue.
@@ -374,10 +388,13 @@ ${logText}`;
 });
 
 app.get("/api/encouragement", async (req, res) => {
+  const timezone = req.headers["x-timezone"] || "UTC";
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: timezone }).format(
+    new Date()
+  );
   const existing = await Motivation.findOne({ userId, date: today });
   if (existing) return res.json({ message: existing.message });
 
