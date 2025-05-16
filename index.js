@@ -110,7 +110,12 @@ app.use(
   cors({
     origin: "https://www.habitsyncai.com",
     methods: ["GET", "POST", "OPTIONS", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-user-id"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-user-id",
+      "x-timezone", // ✅ allow this
+    ],
   })
 );
 app.options("*", cors());
