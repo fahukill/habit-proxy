@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const habitSchema = new mongoose.Schema(
   {
     userId: {
-      type,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
@@ -21,4 +21,5 @@ const habitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.models.Habit || mongoose.model("Habit", habitSchema);
+const Habit = mongoose.models.Habit || mongoose.model("Habit", habitSchema);
+export default Habit;
