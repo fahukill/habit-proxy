@@ -4,9 +4,14 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const OpenAI = require("openai");
+<<<<<<< HEAD
 
+=======
+const cron = require("node-cron");
+>>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 const port = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
+const { sendReportEmail } = require("./utils/email");
 
 const app = express();
 
@@ -18,6 +23,21 @@ const LogEntrySchema = z.object({
   note: z.string().optional(),
 });
 
+<<<<<<< HEAD
+=======
+const ReportActivity =
+  mongoose.models.ReportActivity ||
+  mongoose.model(
+    "ReportActivity",
+    new mongoose.Schema({
+      userId: String,
+      reportId: String,
+      type: { type: String, enum: ["manual", "auto"], required: true },
+      timestamp: { type: Date, default: () => new Date() },
+    })
+  );
+
+>>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 /* ----------------------------- MODELS ----------------------------- */
 const Onboarding =
   mongoose.models.Onboarding ||
@@ -106,6 +126,23 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /* ----------------------------- MIDDLEWARE ----------------------------- */
 app.use(express.json());
+app.use(
+  cors({
+    origin: "https://www.habitsyncai.com",
+    methods: ["GET", "POST", "OPTIONS", "DELETE"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-user-id",
+      "x-timezone", // ✅ allow this
+    ],
+  })
+);
+app.options("*", cors());
+mongoose
+  .connect(process.env.MONGODB_URI || "", { dbName: "habit-sync-ai" })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 app.use((req, res, next) => {
   const clientKey = req.headers["authorization"];
@@ -427,6 +464,44 @@ app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
 
+<<<<<<< HEAD
+=======
+cron.schedule("0 0 * * 0", async () => {
+  const users = await User.find({});
+  for (const user of users) {
+    const logs = await HabitLog.find({ userId: user._id })
+      .sort({ date: -1 })
+      .limit(50);
+    const logText = logs
+      .map((log) => `- ${log.habitId}: ${log.note || "No notes"}`)
+      .join("\n");
+
+    const prompt = `Write a short 2-paragraph report based on these logs:\n${logText}`;
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content =
+      completion.choices?.[0]?.message?.content || "AI report unavailable.";
+    const report = await Report.create({
+      userId: user._id,
+      content,
+      tags: ["ai", "auto"],
+    });
+
+    await ReportActivity.create({
+      userId: user._id,
+      reportId: report._id,
+      type: "auto",
+    });
+
+    // TODO: email report to user.email
+    await sendReportEmail(user.email, content);
+  }
+});
+
+>>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 app.patch("/api/habit-logs/:id", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { id } = req.params;
