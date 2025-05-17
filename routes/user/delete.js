@@ -11,7 +11,10 @@ router.post("/delete", authMiddleware, async (req, res) => {
     await Habit.deleteMany({ userId: req.userId });
     await HabitLog.deleteMany({ userId: req.userId });
     await Report.deleteMany({ userId: req.userId });
-    await User.findByIdAndDelete(req.userId);
+    const result = await User.findByIdAndDelete(req.userId);
+    if (!result) {
+      return res.status(404).json({ error: "User not found" });
+    }
     return res.json({ message: "User account deleted" });
   } catch (err) {
     console.error(err);

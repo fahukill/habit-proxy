@@ -17,7 +17,12 @@ router.get("/notifications", authMiddleware, async (req, res) => {
 
 router.post("/notifications", authMiddleware, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.userId, { notifications: req.body });
+    const result = await User.findByIdAndUpdate(req.userId, {
+      notifications: req.body,
+    });
+    if (!result) {
+      return res.status(404).json({ error: "User not found" });
+    }
     return res.json({ message: "Preferences updated" });
   } catch (err) {
     console.error(err);
