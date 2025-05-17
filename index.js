@@ -336,42 +336,42 @@ app.get("/api/encouragement", async (req, res) => {
   const userId = req.headers["x-user-id"];
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: timezone }).format(
-    new Date()
-  );
-  const existing = await Motivation.findOne({ userId, date: today });
-  if (existing) return res.json({ message: existing.message });
+  try {
+    const today = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: timezone,
+    }).format(new Date());
 
-  const user = await User.findById(userId);
-  const habits = await Habit.find({ userId });
-  const logs = await HabitLog.find({ userId });
+    const existing = await Motivation.findOne({ userId, date: today });
+    if (existing) return res.json({ message: existing.message });
 
-  const streakCount = logs.length;
-  const prompt = `
+    const user = await User.findById(userId).lean();
+    const habits = await Habit.find({ userId }).lean();
+    const logs = await HabitLog.find({ userId }).lean();
+
+    const prompt = `
 You're an encouraging wellness coach. Write 1–2 short sentences of personalized motivation.
 
 User: ${user?.firstName || "friend"}
-Habits:
-${habits.map((h) => `• ${h.name} — ${h.goal || "No goal provided"}`).join("\n")}
-
-This user has logged ${streakCount} habit entries.
-
-Respond as if you're speaking directly to ${
-    user?.firstName || "them"
-  }, with warmth, motivation, and support.
+Habits:\n${habits.map((h) => `- ${h.name}: ${h.goal || "no goal"}`).join("\n")}
+Total logs: ${logs.length}
 `;
 
-  const aiRes = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "system", content: prompt }],
-  });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "system", content: prompt }],
+    });
 
-  const message =
-    aiRes.choices[0]?.message?.content?.trim() ||
-    "Keep pushing forward, you're doing great!";
+    const message =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "You're doing great! Keep it up.";
 
-  await Motivation.create({ userId, message, date: today });
-  res.json({ message });
+    await Motivation.create({ userId, message, date: today });
+
+    return res.json({ message });
+  } catch (err) {
+    console.error("💥 encouragement error:", err.message);
+    return res.json({ message: "You're doing great! (fallback)" }); // fallback to prevent CORS+502
+  }
 });
 
 /* ----------------------------- ROUTES: DEFAULT ----------------------------- */
