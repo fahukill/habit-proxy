@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Report = require("../../models/Report");
+const ReportActivity = require("../models/ReportActivity");
 
 const PDFDocument = require("pdfkit");
 const stream = require("stream");
