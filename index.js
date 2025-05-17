@@ -530,3 +530,37 @@ app.delete("/api/habit-logs/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to delete note" });
   }
 });
+
+app.get("/api/profile", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const user = await User.findById(userId).lean();
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  res.json({
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    subscription: user.subscription,
+  });
+});
+
+app.put("/api/profile", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { firstName, lastName } = req.body;
+
+  if (!userId || !firstName || !lastName)
+    return res.status(400).json({ error: "Missing fields" });
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { firstName, lastName },
+    { new: true }
+  );
+
+  res.json({
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
+});
