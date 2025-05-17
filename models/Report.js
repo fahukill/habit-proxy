@@ -1,8 +1,9 @@
+// proxy/models/Report.js
 const mongoose = require("mongoose");
 
 const reportSchema = new mongoose.Schema({
-  userId: String,
-  content: String,
+  userId: { type: String, required: true },
+  content: { type: String },
   tags: [String],
   date: { type: Date, default: () => new Date() },
 });
