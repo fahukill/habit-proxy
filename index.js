@@ -592,3 +592,6 @@ app.use("/user", emailReportRoutes);
 
 const activityLogRoute = require("./routes/user/activityLog");
 app.use("/user", activityLogRoute);
+
+const authRoutes = require("./routes/auth");
+app.use("/auth", authRoutes);
