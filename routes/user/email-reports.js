@@ -3,10 +3,10 @@ const router = express.Router();
 const User = require("../../models/User");
 const Report = require("../../models/Report");
 const ReportActivity = require("../../models/ReportActivity");
-const authMiddleware = require("../../middleware/auth");
+
 const sendEmail = require("../../utils/sendEmail");
 
-router.post("/email-reports", authMiddleware, async (req, res) => {
+router.post("/email-reports", async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     const reports = await Report.find({ userId: req.userId }).sort({

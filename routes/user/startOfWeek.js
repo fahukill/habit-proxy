@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../../models/User");
-const authMiddleware = require("../../middleware/auth");
 
-router.get("/start-of-week", authMiddleware, async (req, res) => {
+router.get("/start-of-week", async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("startOfWeek");
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -13,7 +12,7 @@ router.get("/start-of-week", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/start-of-week", authMiddleware, async (req, res) => {
+router.post("/start-of-week", async (req, res) => {
   const { startOfWeek } = req.body;
   if (!["Sunday", "Monday"].includes(startOfWeek)) {
     return res.status(400).json({ error: "Invalid value" });

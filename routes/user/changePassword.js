@@ -2,9 +2,8 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const router = express.Router();
 const User = require("../../models/User"); // Adjust path as needed
-const authMiddleware = require("../../middleware/auth");
 
-router.post("/change-password", authMiddleware, async (req, res) => {
+router.post("/change-password", async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const userId = req.userId;
 

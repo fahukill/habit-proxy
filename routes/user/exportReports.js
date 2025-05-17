@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const Report = require("../../models/Report");
-const authMiddleware = require("../../middleware/auth");
+
 const PDFDocument = require("pdfkit");
 const stream = require("stream");
 
-router.get("/export-reports", authMiddleware, async (req, res) => {
+router.get("/export-reports", async (req, res) => {
   const { format } = req.query;
 
   try {

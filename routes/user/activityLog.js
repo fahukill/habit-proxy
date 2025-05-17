@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const ReportActivity = require("../../models/ReportActivity");
-const authMiddleware = require("../../middleware/auth");
+
 const { Parser } = require("json2csv");
 
-router.get("/activity-log", authMiddleware, async (req, res) => {
+router.get("/activity-log", async (req, res) => {
   const { format } = req.query;
 
   try {

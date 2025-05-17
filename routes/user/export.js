@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 const Habit = require("../../models/Habit");
 const HabitLog = require("../../models/HabitLog");
-const authMiddleware = require("../../middleware/auth");
+
 const { Parser } = require("json2csv");
 const PDFDocument = require("pdfkit");
 const stream = require("stream");
 
-router.get("/export", authMiddleware, async (req, res) => {
+router.get("/export", async (req, res) => {
   const { format } = req.query;
 
   try {
