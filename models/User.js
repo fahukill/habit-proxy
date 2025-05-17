@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
       default: "Free", // Capitalized to match frontend logic
     },
     renewalDate: {
-      type,
+      type: String,
     },
     notifications: {
       aiReports: { type: Boolean, default: true },
