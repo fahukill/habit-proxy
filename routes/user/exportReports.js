@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const ReportActivity = require("../models/ReportActivity");
+const ReportActivity = require("../../models/ReportActivity");
 
 const PDFDocument = require("pdfkit");
 const stream = require("stream");
@@ -9,7 +9,7 @@ router.get("/export-reports", async (req, res) => {
   const { format } = req.query;
 
   try {
-    const reports = await Report.find({ userId: req.userId }).sort({
+    const reports = await ReportActivity.find({ userId: req.userId }).sort({
       createdAt: -1,
     });
 
@@ -59,10 +59,11 @@ router.get("/export-reports", async (req, res) => {
     }
 
     return res.status(400).json({ error: "Invalid format" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Failed to export reports" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
+// ✅ Final export line
 module.exports = router;
