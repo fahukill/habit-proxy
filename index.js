@@ -27,6 +27,7 @@ const User = require("./models/User");
 const Habit = require("./models/Habit");
 const HabitLog = require("./models/HabitLog");
 const ReportActivity = require("./models/ReportActivity");
+const Report = require("./models/Report");
 
 /* ----------------------------- MIDDLEWARE ----------------------------- */
 app.use(express.json());
