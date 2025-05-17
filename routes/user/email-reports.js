@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../../models/User");
-const Report = require("../../models/Report");
+const Report = require("../../models/Report"); // ✅ now works
+
 const ReportActivity = require("../../models/ReportActivity");
 
 const sendEmail = require("../../utils/sendEmail");
