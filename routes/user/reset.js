@@ -3,9 +3,8 @@ const router = express.Router();
 const Habit = require("../../models/Habit");
 const HabitLog = require("../../models/HabitLog");
 const Report = require("../../models/Report");
-const authMiddleware = require("../../middleware/auth");
 
-router.post("/reset", authMiddleware, async (req, res) => {
+router.post("/reset", async (req, res) => {
   try {
     await Habit.deleteMany({ userId: req.userId });
     await HabitLog.deleteMany({ userId: req.userId });

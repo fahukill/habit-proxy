@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../../models/User");
-const authMiddleware = require("../../middleware/auth");
 
 // GET current subscription and renewalDate
-router.get("/subscription", authMiddleware, async (req, res) => {
+router.get("/subscription", async (req, res) => {
   try {
     const user = await User.findById(req.userId).select(
       "subscription renewalDate"
@@ -22,7 +21,7 @@ router.get("/subscription", authMiddleware, async (req, res) => {
 });
 
 // POST update subscription (placeholder for Stripe logic)
-router.post("/subscription", authMiddleware, async (req, res) => {
+router.post("/subscription", async (req, res) => {
   const { subscription } = req.body;
   const allowed = ["Free", "Pro", "Coach"];
 

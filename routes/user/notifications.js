@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../../models/User");
-const authMiddleware = require("../../middleware/auth");
 
-router.get("/notifications", authMiddleware, async (req, res) => {
+router.get("/notifications", async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("notifications");
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -15,7 +14,7 @@ router.get("/notifications", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/notifications", authMiddleware, async (req, res) => {
+router.post("/notifications", async (req, res) => {
   try {
     const result = await User.findByIdAndUpdate(req.userId, {
       notifications: req.body,

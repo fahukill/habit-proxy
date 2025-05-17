@@ -4,9 +4,8 @@ const User = require("../../models/User");
 const Habit = require("../../models/Habit");
 const HabitLog = require("../../models/HabitLog");
 const Report = require("../../models/Report");
-const authMiddleware = require("../../middleware/auth");
 
-router.post("/delete", authMiddleware, async (req, res) => {
+router.post("/delete", async (req, res) => {
   try {
     await Habit.deleteMany({ userId: req.userId });
     await HabitLog.deleteMany({ userId: req.userId });
