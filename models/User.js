@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+// models/User.js
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
@@ -6,15 +7,12 @@ const userSchema = new mongoose.Schema(
     firstName: String,
     lastName: String,
     timezone: String,
-
     subscription: {
       type: String,
       enum: ["Free", "Pro", "Coach"],
-      default: "Free", // Capitalized to match frontend logic
+      default: "Free",
     },
-    renewalDate: {
-      type: String,
-    },
+    renewalDate: String,
     notifications: {
       aiReports: { type: Boolean, default: true },
       streakReminders: { type: Boolean, default: true },
@@ -35,5 +33,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const User = mongoose.models.User || mongoose.model("User", userSchema);
-export default User;
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);
