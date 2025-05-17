@@ -585,7 +585,7 @@ const exportRoute = require("./routes/user/export");
 app.use("/user", exportRoute);
 
 const reportRoutes = require("./routes/user/exportReports");
-const emailReportRoutes = require("./routes/user/emailReports");
+const emailReportRoutes = require("./routes/user/email-reports"); // ✅
 
 app.use("/user", reportRoutes);
 app.use("/user", emailReportRoutes);
