@@ -106,23 +106,6 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /* ----------------------------- MIDDLEWARE ----------------------------- */
 app.use(express.json());
-app.use(
-  cors({
-    origin: "https://www.habitsyncai.com",
-    methods: ["GET", "POST", "OPTIONS", "DELETE"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "x-user-id",
-      "x-timezone", // ✅ allow this
-    ],
-  })
-);
-app.options("*", cors());
-mongoose
-  .connect(process.env.MONGODB_URI || "", { dbName: "habit-sync-ai" })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
 
 app.use((req, res, next) => {
   const clientKey = req.headers["authorization"];
