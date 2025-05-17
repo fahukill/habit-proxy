@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const HabitLog = require("../../models/HabitLog");
 const Habit = require("../../models/Habit");
+const HabitLog = require("../../models/HabitLog");
 const authMiddleware = require("../../middleware/auth");
 const { Parser } = require("json2csv");
 const PDFDocument = require("pdfkit");
@@ -13,19 +13,17 @@ router.get("/export", authMiddleware, async (req, res) => {
   try {
     const habits = await Habit.find({ userId: req.userId });
     const logs = await HabitLog.find({ userId: req.userId });
-
-    const fullData = {
-      habits,
-      logs,
-    };
+    if (!habits.length && !logs.length) {
+      return res.status(404).json({ error: "No habit data found" });
+    }
 
     if (format === "json") {
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=habit_data.json`
+        "attachment; filename=habit_data.json"
       );
       res.setHeader("Content-Type", "application/json");
-      return res.send(JSON.stringify(fullData, null, 2));
+      return res.send(JSON.stringify({ habits, logs }, null, 2));
     }
 
     if (format === "csv") {
@@ -41,7 +39,7 @@ router.get("/export", authMiddleware, async (req, res) => {
       const csv = parser.parse(data);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=habit_data.csv`
+        "attachment; filename=habit_data.csv"
       );
       res.setHeader("Content-Type", "text/csv");
       return res.send(csv);
@@ -52,13 +50,14 @@ router.get("/export", authMiddleware, async (req, res) => {
       const pass = new stream.PassThrough();
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=habit_data.pdf`
+        "attachment; filename=habit_data.pdf"
       );
       res.setHeader("Content-Type", "application/pdf");
       doc.pipe(pass);
+
       doc
         .fontSize(16)
-        .text("HabitSyncAI - Habit Data", { underline: true })
+        .text("HabitSyncAI – Habit Log History", { underline: true })
         .moveDown();
 
       habits.forEach((habit) => {
@@ -68,7 +67,7 @@ router.get("/export", authMiddleware, async (req, res) => {
           doc
             .fontSize(10)
             .text(
-              `- ${log.date.toISOString().split("T")[0]}: ${log.note || "✓"}`
+              `• ${log.date.toISOString().split("T")[0]}: ${log.note || "✓"}`
             );
         });
         doc.moveDown();
@@ -79,9 +78,9 @@ router.get("/export", authMiddleware, async (req, res) => {
       return;
     }
 
-    return res.status(400).json({ error: "Invalid format" });
+    return res.status(400).json({ error: "Invalid export format" });
   } catch (err) {
-    console.error(err);
+    console.error("Export error:", err);
     return res.status(500).json({ error: "Failed to export data" });
   }
 });

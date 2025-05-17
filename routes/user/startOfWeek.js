@@ -20,7 +20,10 @@ router.post("/start-of-week", authMiddleware, async (req, res) => {
   }
 
   try {
-    await User.findByIdAndUpdate(req.userId, { startOfWeek });
+    const result = await User.findByIdAndUpdate(req.userId, { startOfWeek });
+    if (!result) {
+      return res.status(404).json({ error: "User not found" });
+    }
     return res.json({ message: "Updated" });
   } catch {
     return res.status(500).json({ error: "Server error" });

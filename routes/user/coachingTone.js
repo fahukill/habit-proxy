@@ -21,7 +21,12 @@ router.post("/coaching-tone", authMiddleware, async (req, res) => {
   }
 
   try {
-    await User.findByIdAndUpdate(req.userId, { coachingTone: tone });
+    const result = await User.findByIdAndUpdate(req.userId, {
+      coachingTone: tone,
+    });
+    if (!result) {
+      return res.status(404).json({ error: "User not found" });
+    }
     return res.json({ message: "Tone updated" });
   } catch {
     return res.status(500).json({ error: "Server error" });

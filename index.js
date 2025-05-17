@@ -567,3 +567,18 @@ app.put("/api/profile", async (req, res) => {
 
 const userNotificationsRoute = require("./routes/user/notifications");
 app.use("/user", userNotificationsRoute);
+
+const subscriptionRoute = require("./routes/user/subscription");
+app.use("/user", subscriptionRoute);
+
+const exportRoute = require("./routes/user/export");
+app.use("/user", exportRoute);
+
+const reportRoutes = require("./routes/user/exportReports");
+const emailReportRoutes = require("./routes/user/emailReports");
+
+app.use("/user", reportRoutes);
+app.use("/user", emailReportRoutes);
+
+const activityLogRoute = require("./routes/user/activityLog");
+app.use("/user", activityLogRoute);
