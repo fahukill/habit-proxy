@@ -4,14 +4,10 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const OpenAI = require("openai");
-<<<<<<< HEAD
-
-=======
-const cron = require("node-cron");
->>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 const port = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const { sendReportEmail } = require("./utils/email");
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const app = express();
 
@@ -39,90 +35,12 @@ const ReportActivity =
 
 >>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 /* ----------------------------- MODELS ----------------------------- */
-const Onboarding =
-  mongoose.models.Onboarding ||
-  mongoose.model(
-    "Onboarding",
-    new mongoose.Schema({
-      userId: String,
-      objective: String,
-      name: String,
-      timezone: String,
-      habits: Array,
-      motivation: String,
-    })
-  );
-
-const Motivation =
-  mongoose.models.Motivation ||
-  mongoose.model(
-    "Motivation",
-    new mongoose.Schema({
-      userId: String,
-      message: String,
-      date: String,
-    })
-  );
-
-const User =
-  mongoose.models.User ||
-  mongoose.model(
-    "User",
-    new mongoose.Schema({
-      firstName: String,
-      lastName: String,
-      email: String,
-      password: String,
-      subscription: {
-        type: String,
-        enum: ["Free", "Pro", "Coach"],
-        default: "Free",
-      },
-    })
-  );
-
-const Habit =
-  mongoose.models.Habit ||
-  mongoose.model(
-    "Habit",
-    new mongoose.Schema({
-      userId: String,
-      name: String,
-      frequency: {
-        type: String,
-        enum: ["daily", "weekly", "monthly"],
-        required: true,
-      },
-      days: [String],
-      createdAt: { type: Date, default: () => new Date() },
-    })
-  );
-
-const HabitLog =
-  mongoose.models.HabitLog ||
-  mongoose.model(
-    "HabitLog",
-    new mongoose.Schema({
-      habitId: String,
-      userId: String,
-      note: String,
-      date: { type: Date, default: () => new Date() },
-    })
-  );
-
-const Report =
-  mongoose.models.Report ||
-  mongoose.model(
-    "Report",
-    new mongoose.Schema({
-      userId: String,
-      content: String,
-      tags: [String],
-      date: { type: Date, default: () => new Date() },
-    })
-  );
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const Onboarding = require("./models/Onboarding");
+const Motivation = require("./models/Motivation");
+const User = require("./models/User");
+const Habit = require("./models/Habit");
+const HabitLog = require("./models/HabitLog");
+const ReportActivity = require("./models/ReportActivity");
 
 /* ----------------------------- MIDDLEWARE ----------------------------- */
 app.use(express.json());
