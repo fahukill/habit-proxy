@@ -564,3 +564,6 @@ app.put("/api/profile", async (req, res) => {
     lastName: user.lastName,
   });
 });
+
+const userNotificationsRoute = require("./routes/user/notifications");
+app.use("/user", userNotificationsRoute);
