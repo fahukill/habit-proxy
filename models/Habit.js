@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const habitSchema = new mongoose.Schema(
   {
@@ -21,5 +21,4 @@ const habitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Habit = mongoose.models.Habit || mongoose.model("Habit", habitSchema);
-export default Habit;
+module.exports = mongoose.models.Habit || mongoose.model("Habit", habitSchema);
