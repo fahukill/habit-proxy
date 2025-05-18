@@ -1,21 +1,27 @@
 require("dotenv").config();
-
 const express = require("express");
 const app = express();
 const cors = require("cors");
 const mongoose = require("mongoose");
-require("dotenv").config();
 
+// Routes
 const apiRoutes = require("./routes/apiRoutes");
-const userRoutes = require("./routes/user/notifications");
+const authRoutes = require("./routes/auth");
+
+// User feature modules
+const onboardingRoutes = require("./routes/user"); // handles /onboarding, /update, /
+const notificationsRoutes = require("./routes/user/notifications");
 const subscriptionRoutes = require("./routes/user/subscription");
 const exportRoutes = require("./routes/user/export");
 const reportRoutes = require("./routes/user/exportReports");
 const emailReportRoutes = require("./routes/user/email-reports");
 const activityLogRoutes = require("./routes/user/activityLog");
-const authRoutes = require("./routes/auth");
+const coachingToneRoutes = require("./routes/user/coachingTone");
+const changePasswordRoutes = require("./routes/user/changePassword");
+const resetRoutes = require("./routes/user/reset");
+const startOfWeekRoutes = require("./routes/user/startOfWeek");
 
-// middleware
+// Middleware
 app.use(express.json());
 app.use(
   cors({
@@ -31,13 +37,13 @@ app.use(
 );
 app.options("*", cors());
 
-// db
+// DB Connection
 mongoose
   .connect(process.env.MONGODB_URI, { dbName: "habit-sync-ai" })
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB error:", err));
 
-// auth middleware
+// API Key auth middleware
 app.use((req, res, next) => {
   const clientKey = req.headers["authorization"];
   if (clientKey !== `Bearer ${process.env.API_KEY}`) {
@@ -46,19 +52,25 @@ app.use((req, res, next) => {
   next();
 });
 
-// routes
+// Route Usage
 app.use("/api", apiRoutes);
-app.use("/user", userRoutes);
+app.use("/auth", authRoutes);
+app.use("/user", onboardingRoutes);
+app.use("/user", notificationsRoutes);
 app.use("/user", subscriptionRoutes);
 app.use("/user", exportRoutes);
 app.use("/user", reportRoutes);
 app.use("/user", emailReportRoutes);
 app.use("/user", activityLogRoutes);
-app.use("/auth", authRoutes);
+app.use("/user", coachingToneRoutes);
+app.use("/user", changePasswordRoutes);
+app.use("/user", resetRoutes);
+app.use("/user", startOfWeekRoutes);
 
 app.get("/", (_, res) => {
   res.send("HabitSyncAI Proxy API is running.");
 });
 
+// Start Server
 const port = process.env.PORT || 3001;
 app.listen(port, () => console.log(`Server running on port ${port}`));
