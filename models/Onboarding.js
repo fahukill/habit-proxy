@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const onboardingSchema = new mongoose.Schema(
   {
@@ -15,6 +15,5 @@ const onboardingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Onboarding =
+module.exports =
   mongoose.models.Onboarding || mongoose.model("Onboarding", onboardingSchema);
-export default Onboarding;

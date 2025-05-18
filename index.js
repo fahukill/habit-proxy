@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -19,21 +21,6 @@ const LogEntrySchema = z.object({
   note: z.string().optional(),
 });
 
-<<<<<<< HEAD
-=======
-const ReportActivity =
-  mongoose.models.ReportActivity ||
-  mongoose.model(
-    "ReportActivity",
-    new mongoose.Schema({
-      userId: String,
-      reportId: String,
-      type: { type: String, enum: ["manual", "auto"], required: true },
-      timestamp: { type: Date, default: () => new Date() },
-    })
-  );
-
->>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 /* ----------------------------- MODELS ----------------------------- */
 const Onboarding = require("./models/Onboarding");
 const Motivation = require("./models/Motivation");
@@ -47,7 +34,7 @@ const Report = require("./models/Report");
 app.use(express.json());
 app.use(
   cors({
-    origin: "https://www.habitsyncai.com",
+    origin: ["https://www.habitsyncai.com", "http://localhost:3000"],
     methods: ["GET", "POST", "OPTIONS", "DELETE"],
     allowedHeaders: [
       "Content-Type",
@@ -89,6 +76,7 @@ app.post("/api/user", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("✅ Hashed password:", hashedPassword);
     const newUser = await User.create({
       firstName,
       lastName,
@@ -120,27 +108,42 @@ app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
+    console.warn("❌ Missing credentials");
     return res.status(400).json({ message: "Missing credentials" });
   }
 
   try {
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    if (!user) {
+      console.warn("❌ No user found for:", email);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    console.log("🔍 Found user:", user.email);
+    console.log("🔐 Incoming password:", password);
+    console.log("🔐 Stored hash:", user.password);
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid credentials" });
+    console.log("🔍 bcrypt.compare result:", isMatch);
 
-    res.json({
-      id: user._id,
+    if (!isMatch) {
+      console.warn("❌ Incorrect password for:", email);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    return res.json({
+      id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      subscription: user.subscription,
+      name: `${user.firstName} ${user.lastName}`,
+      image:
+        user.image ||
+        `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}`,
+      subscription: user.subscription || "Free",
     });
   } catch (err) {
-    console.error("Login error:", err.message || err);
-    res.status(500).json({ message: "Server error" });
+    console.error("🔥 Login error:", err.message || err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
