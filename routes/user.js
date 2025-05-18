@@ -1,14 +1,17 @@
+const express = require("express");
+const router = express.Router();
+const User = require("../models/User");
+const Habit = require("../models/Habit");
+const authMiddleware = require("../middleware/auth"); // adjust if necessary
+
+// POST /user/onboarding
 router.post("/onboarding", authMiddleware, async (req, res) => {
   try {
     const { firstName, lastName, habits } = req.body;
 
-    await User.findByIdAndUpdate(req.userId, {
-      firstName,
-      lastName,
-    });
+    await User.findByIdAndUpdate(req.userId, { firstName, lastName });
 
-    if (Array.isArray(habits)) {
-      const Habit = require("../models/Habit");
+    if (Array.isArray(habits) && habits.length > 0) {
       const habitDocs = habits.map((h) => ({
         ...h,
         userId: req.userId,
@@ -23,11 +26,11 @@ router.post("/onboarding", authMiddleware, async (req, res) => {
   }
 });
 
+// GET /user/
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
-
     res.json(user);
   } catch (err) {
     console.error("Get user error:", err);
@@ -35,6 +38,7 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /user/update
 router.post("/update", authMiddleware, async (req, res) => {
   try {
     const updated = await User.findByIdAndUpdate(req.userId, req.body, {
@@ -49,3 +53,5 @@ router.post("/update", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Failed to update user" });
   }
 });
+
+module.exports = router;

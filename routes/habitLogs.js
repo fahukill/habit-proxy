@@ -1,22 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
-const Habit = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
 
-// ✅ GET /api/habits — fetch all habits for the user
+// GET /api/habit-logs
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const habits = await Habit.find({ userId: req.userId });
-    res.json(habits);
+    const logs = await HabitLog.find({ userId: req.userId }).sort({ date: -1 });
+    res.json(logs);
   } catch (err) {
-    console.error("Failed to fetch habits:", err);
-    res.status(500).json({ error: "Could not fetch habits" });
+    console.error("Failed to fetch habit logs:", err);
+    res.status(500).json({ error: "Could not fetch habit logs" });
   }
 });
 
-// ✅ POST /api/habits/log — log a habit entry
-router.post("/log", authMiddleware, async (req, res) => {
+// POST /api/habit-logs
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const { habitId, note, date } = req.body;
 
@@ -30,8 +29,8 @@ router.post("/log", authMiddleware, async (req, res) => {
     await log.save();
     res.status(201).json(log);
   } catch (err) {
-    console.error("Failed to log habit:", err);
-    res.status(500).json({ error: "Could not log habit" });
+    console.error("Failed to create habit log:", err);
+    res.status(500).json({ error: "Could not create habit log" });
   }
 });
 

@@ -7,7 +7,8 @@ const mongoose = require("mongoose");
 // Routes
 const apiRoutes = require("./routes/apiRoutes");
 const authRoutes = require("./routes/auth");
-
+const habitRoutes = require("./routes/habits");
+const habitLogRoutes = require("./routes/habitLogs");
 // User feature modules
 const onboardingRoutes = require("./routes/user"); // handles /onboarding, /update, /
 const notificationsRoutes = require("./routes/user/notifications");
@@ -45,8 +46,11 @@ mongoose
 
 // API Key auth middleware
 app.use((req, res, next) => {
+  console.log("Incoming Headers:", req.headers); // 👈 log for debugging
+
   const clientKey = req.headers["authorization"];
   if (clientKey !== `Bearer ${process.env.API_KEY}`) {
+    console.warn("❌ Invalid API key:", clientKey);
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
@@ -66,6 +70,8 @@ app.use("/user", coachingToneRoutes);
 app.use("/user", changePasswordRoutes);
 app.use("/user", resetRoutes);
 app.use("/user", startOfWeekRoutes);
+app.use("/api/habits", habitRoutes);
+app.use("/api/habit-logs", habitLogRoutes);
 
 app.get("/", (_, res) => {
   res.send("HabitSyncAI Proxy API is running.");
