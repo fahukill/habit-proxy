@@ -10,6 +10,8 @@ const port = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const { sendReportEmail } = require("./utils/email");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const { sendReportEmail } = require("./utils/email");
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const app = express();
 
@@ -22,6 +24,13 @@ const LogEntrySchema = z.object({
 });
 
 /* ----------------------------- MODELS ----------------------------- */
+const Onboarding = require("./models/Onboarding");
+const Motivation = require("./models/Motivation");
+const User = require("./models/User");
+const Habit = require("./models/Habit");
+const HabitLog = require("./models/HabitLog");
+const ReportActivity = require("./models/ReportActivity");
+const Report = require("./models/Report");
 const Onboarding = require("./models/Onboarding");
 const Motivation = require("./models/Motivation");
 const User = require("./models/User");
@@ -346,7 +355,19 @@ app.get("/api/encouragement", async (req, res) => {
 
     const existing = await Motivation.findOne({ userId, date: today });
     if (existing) return res.json({ message: existing.message });
+  try {
+    const today = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: timezone,
+    }).format(new Date());
 
+    const existing = await Motivation.findOne({ userId, date: today });
+    if (existing) return res.json({ message: existing.message });
+
+    const user = await User.findById(userId).lean();
+    const habits = await Habit.find({ userId }).lean();
+    const logs = await HabitLog.find({ userId }).lean();
+
+    const prompt = `
     const user = await User.findById(userId).lean();
     const habits = await Habit.find({ userId }).lean();
     const logs = await HabitLog.find({ userId }).lean();
@@ -357,8 +378,14 @@ You're an encouraging wellness coach. Write 1–2 short sentences of personalize
 User: ${user?.firstName || "friend"}
 Habits:\n${habits.map((h) => `- ${h.name}: ${h.goal || "no goal"}`).join("\n")}
 Total logs: ${logs.length}
+Habits:\n${habits.map((h) => `- ${h.name}: ${h.goal || "no goal"}`).join("\n")}
+Total logs: ${logs.length}
 `;
 
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "system", content: prompt }],
+    });
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "system", content: prompt }],
@@ -367,7 +394,17 @@ Total logs: ${logs.length}
     const message =
       completion.choices?.[0]?.message?.content?.trim() ||
       "You're doing great! Keep it up.";
+    const message =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "You're doing great! Keep it up.";
 
+    await Motivation.create({ userId, message, date: today });
+
+    return res.json({ message });
+  } catch (err) {
+    console.error("💥 encouragement error:", err.message);
+    return res.json({ message: "You're doing great! (fallback)" }); // fallback to prevent CORS+502
+  }
     await Motivation.create({ userId, message, date: today });
 
     return res.json({ message });
@@ -386,44 +423,6 @@ app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
 
-<<<<<<< HEAD
-=======
-cron.schedule("0 0 * * 0", async () => {
-  const users = await User.find({});
-  for (const user of users) {
-    const logs = await HabitLog.find({ userId: user._id })
-      .sort({ date: -1 })
-      .limit(50);
-    const logText = logs
-      .map((log) => `- ${log.habitId}: ${log.note || "No notes"}`)
-      .join("\n");
-
-    const prompt = `Write a short 2-paragraph report based on these logs:\n${logText}`;
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const content =
-      completion.choices?.[0]?.message?.content || "AI report unavailable.";
-    const report = await Report.create({
-      userId: user._id,
-      content,
-      tags: ["ai", "auto"],
-    });
-
-    await ReportActivity.create({
-      userId: user._id,
-      reportId: report._id,
-      type: "auto",
-    });
-
-    // TODO: email report to user.email
-    await sendReportEmail(user.email, content);
-  }
-});
-
->>>>>>> 4c6a1e2 (Refactor: Remove unused controllers, routes, and middleware; consolidate user and habit management logic into index.js; implement AI report generation and motivation features; update user profile handling; enhance error handling and validation.)
 app.patch("/api/habit-logs/:id", async (req, res) => {
   const userId = req.headers["x-user-id"];
   const { id } = req.params;
@@ -462,6 +461,61 @@ app.delete("/api/habit-logs/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to delete note" });
   }
 });
+
+app.get("/api/profile", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const user = await User.findById(userId).lean();
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  res.json({
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    subscription: user.subscription,
+  });
+});
+
+app.put("/api/profile", async (req, res) => {
+  const userId = req.headers["x-user-id"];
+  const { firstName, lastName } = req.body;
+
+  if (!userId || !firstName || !lastName)
+    return res.status(400).json({ error: "Missing fields" });
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { firstName, lastName },
+    { new: true }
+  );
+
+  res.json({
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
+});
+
+const userNotificationsRoute = require("./routes/user/notifications");
+app.use("/user", userNotificationsRoute);
+
+const subscriptionRoute = require("./routes/user/subscription");
+app.use("/user", subscriptionRoute);
+
+const exportRoute = require("./routes/user/export");
+app.use("/user", exportRoute);
+
+const reportRoutes = require("./routes/user/exportReports");
+const emailReportRoutes = require("./routes/user/email-reports"); // ✅
+
+app.use("/user", reportRoutes);
+app.use("/user", emailReportRoutes);
+
+const activityLogRoute = require("./routes/user/activityLog");
+app.use("/user", activityLogRoute);
+
+const authRoutes = require("./routes/auth");
+app.use("/auth", authRoutes);
 
 app.get("/api/profile", async (req, res) => {
   const userId = req.headers["x-user-id"];
