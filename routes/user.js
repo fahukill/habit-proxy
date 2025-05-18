@@ -28,6 +28,8 @@ router.post("/onboarding", authMiddleware, async (req, res) => {
 
 // GET /user/
 router.get("/", authMiddleware, async (req, res) => {
+  console.log("req.userId", req.userId);
+  console.log("headers", req.headers);
   try {
     const user = await User.findById(req.userId).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -51,6 +53,50 @@ router.post("/update", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("User update error:", err);
     res.status(500).json({ error: "Failed to update user" });
+  }
+});
+// ✅ NEW: GET /user/subscription
+router.get("/subscription", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("subscription");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ subscription: user.subscription });
+  } catch (err) {
+    console.error("Get subscription error:", err);
+    res.status(500).json({ error: "Failed to get subscription" });
+  }
+});
+
+// ✅ NEW: GET /user/notifications
+router.get("/notifications", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select(
+      "notificationPreferences"
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user.notificationPreferences || {});
+  } catch (err) {
+    console.error("Get notifications error:", err);
+    res.status(500).json({ error: "Failed to get notifications" });
+  }
+});
+
+// ✅ NEW: POST /user/notifications
+router.post("/notifications", authMiddleware, async (req, res) => {
+  try {
+    const preferences = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { notificationPreferences: preferences },
+      { new: true }
+    ).select("notificationPreferences");
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user.notificationPreferences);
+  } catch (err) {
+    console.error("Update notifications error:", err);
+    res.status(500).json({ error: "Failed to update notifications" });
   }
 });
 

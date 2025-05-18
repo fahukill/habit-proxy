@@ -46,7 +46,7 @@ mongoose
 
 // API Key auth middleware
 app.use((req, res, next) => {
-  console.log("Incoming Headers:", req.headers); // 👈 log for debugging
+  //console.log("Incoming Headers:", req.headers); // 👈 log for debugging
 
   const clientKey = req.headers["authorization"];
   if (clientKey !== `Bearer ${process.env.API_KEY}`) {
@@ -72,6 +72,9 @@ app.use("/user", resetRoutes);
 app.use("/user", startOfWeekRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/habit-logs", habitLogRoutes);
+app.use("/api/reports", require("./routes/reports"));
+app.use("/api/profile", require("./routes/profile"));
+app.use("/user", require("./routes/user"));
 
 app.get("/", (_, res) => {
   res.send("HabitSyncAI Proxy API is running.");
