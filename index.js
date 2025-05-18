@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -58,5 +60,5 @@ app.get("/", (_, res) => {
   res.send("HabitSyncAI Proxy API is running.");
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 app.listen(port, () => console.log(`Server running on port ${port}`));
