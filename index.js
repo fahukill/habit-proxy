@@ -34,6 +34,7 @@ app.use(
       "x-user-id",
       "x-timezone",
     ],
+    credentials: true,
   })
 );
 app.options("*", cors());

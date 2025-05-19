@@ -15,23 +15,93 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ GET /api/habits/log?date=YYYY-MM-DD — logs for a specific day
+router.get("/log", authMiddleware, async (req, res) => {
+  try {
+    const date = req.query.date;
+    if (!date) {
+      return res.status(400).json({ error: "Missing 'date' query parameter" });
+    }
+
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const logs = await HabitLog.find({
+      userId: req.userId,
+      date: { $gte: start, $lte: end },
+    });
+
+    res.status(200).json(logs);
+  } catch (err) {
+    console.error("Failed to fetch habit logs by date:", err);
+    res.status(500).json({ error: "Could not fetch logs" });
+  }
+});
+
 // ✅ POST /api/habits/log — log a habit entry
 router.post("/log", authMiddleware, async (req, res) => {
   try {
     const { habitId, note, date } = req.body;
+    console.log("🛠️ Received log:", { habitId, date, note });
+
+    if (!habitId || !date) {
+      return res.status(400).json({ error: "Missing habitId or date" });
+    }
+
+    const logDate = new Date(date);
+    logDate.setHours(0, 0, 0, 0); // normalize time
+
+    const existingLog = await HabitLog.findOne({
+      userId: req.userId,
+      habitId,
+      date: {
+        $gte: logDate,
+        $lte: new Date(logDate.getTime() + 86400000 - 1),
+      },
+    });
+
+    if (existingLog) {
+      return res.status(200).json(existingLog); // ✅ early return
+    }
 
     const log = new HabitLog({
       userId: req.userId,
       habitId,
       note,
-      date: date ? new Date(date) : new Date(),
+      date: logDate,
     });
 
     await log.save();
-    res.status(201).json(log);
+    return res.status(201).json(log); // ✅ must return here
   } catch (err) {
-    console.error("Failed to log habit:", err);
-    res.status(500).json({ error: "Could not log habit" });
+    console.error("❌ Failed to log habit:", err);
+    return res.status(500).json({ error: "Could not log habit" });
+  }
+});
+
+// ✅ POST /api/habits — create a new habit
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    const { name, frequency, days } = req.body;
+
+    if (!name || !frequency) {
+      return res.status(400).json({ error: "Name and frequency are required" });
+    }
+
+    const habit = new Habit({
+      userId: req.userId,
+      name,
+      frequency,
+      days: Array.isArray(days) ? days : [], // ensure it's always an array
+    });
+
+    await habit.save();
+    res.status(201).json(habit);
+  } catch (err) {
+    console.error("Failed to create habit:", err);
+    res.status(500).json({ error: "Could not create habit" });
   }
 });
 
