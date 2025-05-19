@@ -18,19 +18,14 @@ router.get("/", authMiddleware, async (req, res) => {
 // ✅ GET /api/habits/log?date=YYYY-MM-DD — logs for a specific day
 router.get("/log", authMiddleware, async (req, res) => {
   try {
-    const date = req.query.date;
+    const { date } = req.query;
     if (!date) {
       return res.status(400).json({ error: "Missing 'date' query parameter" });
     }
 
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-
     const logs = await HabitLog.find({
       userId: req.userId,
-      date: { $gte: start, $lte: end },
+      date: date, // ✅ direct string match
     });
 
     res.status(200).json(logs);
@@ -43,6 +38,7 @@ router.get("/log", authMiddleware, async (req, res) => {
 // ✅ POST /api/habits/log — log a habit entry
 router.post("/log", authMiddleware, async (req, res) => {
   try {
+    const dayjs = require("dayjs");
     const { habitId, note, date } = req.body;
     console.log("🛠️ Received log:", { habitId, date, note });
 
@@ -50,22 +46,21 @@ router.post("/log", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Missing habitId or date" });
     }
 
-    const logDate = new Date(date);
-    logDate.setHours(0, 0, 0, 0); // normalize time
+    // ✅ Clean date to YYYY-MM-DD string
+    const logDate = dayjs(date).format("YYYY-MM-DD");
 
+    // ✅ Check if already logged on this day
     const existingLog = await HabitLog.findOne({
       userId: req.userId,
       habitId,
-      date: {
-        $gte: logDate,
-        $lte: new Date(logDate.getTime() + 86400000 - 1),
-      },
+      date: logDate,
     });
 
     if (existingLog) {
-      return res.status(200).json(existingLog); // ✅ early return
+      return res.status(200).json(existingLog); // 🧠 Already logged
     }
 
+    // ✅ Save new log
     const log = new HabitLog({
       userId: req.userId,
       habitId,
@@ -74,7 +69,7 @@ router.post("/log", authMiddleware, async (req, res) => {
     });
 
     await log.save();
-    return res.status(201).json(log); // ✅ must return here
+    return res.status(201).json(log); // 🟢 Success
   } catch (err) {
     console.error("❌ Failed to log habit:", err);
     return res.status(500).json({ error: "Could not log habit" });

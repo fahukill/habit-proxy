@@ -2,11 +2,21 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const HabitLog = require("../models/HabitLog");
+const dayjs = require("dayjs");
 
 // GET /api/habit-logs
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const logs = await HabitLog.find({ userId: req.userId }).sort({ date: -1 });
+    const { date } = req.query;
+    const query = { userId: req.userId };
+
+    if (date) {
+      const start = dayjs(date).startOf("day").toDate();
+      const end = dayjs(date).endOf("day").toDate();
+      query.date = { $gte: start, $lte: end };
+    }
+
+    const logs = await HabitLog.find(query).sort({ date: -1 });
     res.json(logs);
   } catch (err) {
     console.error("Failed to fetch habit logs:", err);
@@ -19,11 +29,15 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const { habitId, note, date } = req.body;
 
+    // ✅ FIXED: use dayjs to ensure correct local midnight
+    const dayjs = require("dayjs");
+    const parsedDate = dayjs(date || new Date()).format("YYYY-MM-DD");
+
     const log = new HabitLog({
       userId: req.userId,
       habitId,
       note,
-      date: date ? new Date(date) : new Date(),
+      date: parsedDate,
     });
 
     await log.save();
