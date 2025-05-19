@@ -49,6 +49,7 @@ app.use((req, res, next) => {
   //console.log("Incoming Headers:", req.headers); // 👈 log for debugging
 
   const clientKey = req.headers["authorization"];
+
   if (clientKey !== `Bearer ${process.env.API_KEY}`) {
     console.warn("❌ Invalid API key:", clientKey);
     return res.status(401).json({ error: "Unauthorized" });

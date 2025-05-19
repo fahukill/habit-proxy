@@ -4,8 +4,12 @@ const authMiddleware = require("../middleware/auth");
 const User = require("../models/User");
 
 router.get("/", authMiddleware, async (req, res) => {
+  console.log("✅ /api/profile hit");
+  console.log("req.userId:", req.userId);
   try {
     const user = await User.findOne({ _id: req.userId }).select("-password");
+    console.log("🔎 Fetched user:", user);
+
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (error) {
