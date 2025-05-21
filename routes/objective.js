@@ -3,19 +3,19 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const Objective = require("../models/Objective");
-console.log("✅ /api/objective route loaded");
+//console.log("✅ /api/objective route loaded");
 
 router.get("/get", authMiddleware, async (req, res) => {
   try {
-    console.log("🧠 Incoming userId:", req.userId, typeof req.userId);
+    // console.log("🧠 Incoming userId:", req.userId, typeof req.userId);
 
     const doc = await Objective.findOne({ userId: req.userId });
-    console.log("📦 Query result:", doc);
+    //console.log("📦 Query result:", doc);
 
     if (!doc) {
       console.warn("⚠️ No match for userId:", req.userId);
     } else {
-      console.log("📦 Found objective:", doc.text);
+      //console.log("📦 Found objective:", doc.text);
     }
 
     res.json({ objective: doc?.text || "" });
