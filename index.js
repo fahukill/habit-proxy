@@ -77,7 +77,9 @@ app.use("/api/habit-logs", habitLogRoutes);
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/profile", require("./routes/profile"));
 app.use("/user", require("./routes/user"));
+app.use("/api/objective", require("./routes/objective"));
 
+// Health Check
 app.get("/", (_, res) => {
   res.send("HabitSyncAI Proxy API is running.");
 });
