@@ -3,21 +3,24 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const Objective = require("../models/Objective");
-const mongoose = require("mongoose"); // NEW
+console.log("✅ /api/objective route loaded");
 
-router.get("/", authMiddleware, async (req, res) => {
-  let userObjectId;
+router.get("/get", authMiddleware, async (req, res) => {
   try {
-    userObjectId = new mongoose.Types.ObjectId(req.userId); // CONVERT userId to ObjectId
-  } catch {
-    return res.status(400).json({ error: "Invalid user ID format" });
-  }
+    console.log("🧠 Incoming userId:", req.userId, typeof req.userId);
 
-  try {
-    const doc = await Objective.findOne({ userId: userObjectId });
+    const doc = await Objective.findOne({ userId: req.userId });
+    console.log("📦 Query result:", doc);
+
+    if (!doc) {
+      console.warn("⚠️ No match for userId:", req.userId);
+    } else {
+      console.log("📦 Found objective:", doc.text);
+    }
+
     res.json({ objective: doc?.text || "" });
   } catch (err) {
-    console.error("Fetch error:", err);
+    console.error("❌ Fetch error:", err);
     res.status(500).json({ error: "Failed to fetch objective" });
   }
 });
@@ -28,23 +31,15 @@ router.post("/", authMiddleware, async (req, res) => {
   if (typeof objective !== "string") {
     return res.status(400).json({ error: "Invalid objective" });
   }
-  console.log("Saving objective:", objective, "for user:", req.userId);
-
-  let userObjectId;
-  try {
-    userObjectId = new mongoose.Types.ObjectId(req.userId); // CONVERT userId to ObjectId
-  } catch {
-    return res.status(400).json({ error: "Invalid user ID format" });
-  }
 
   try {
-    const existing = await Objective.findOneAndUpdate(
-      { userId: userObjectId },
+    const updated = await Objective.findOneAndUpdate(
+      { userId: req.userId },
       { text: objective },
       { new: true, upsert: true }
     );
 
-    res.status(200).json({ message: "Objective saved", data: existing });
+    res.status(200).json({ message: "Objective saved", data: updated });
   } catch (err) {
     console.error("Save error:", err);
     res.status(500).json({ error: "Failed to save objective" });

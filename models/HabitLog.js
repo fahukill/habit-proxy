@@ -12,6 +12,7 @@ const habitLogSchema = new mongoose.Schema(
       ref: "Habit",
       required: true,
     },
+    note: { type: String, default: "" },
     date: { type: String, required: true },
   },
   { timestamps: true }

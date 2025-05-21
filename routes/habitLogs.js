@@ -24,27 +24,49 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/habit-logs
+// POST /api/habit-logs — Create or update a log with a note
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { habitId, note, date } = req.body;
 
-    // ✅ FIXED: use dayjs to ensure correct local midnight
-    const dayjs = require("dayjs");
-    const parsedDate = dayjs(date || new Date()).format("YYYY-MM-DD");
+    const parsedDate = dayjs(date || new Date())
+      .startOf("day")
+      .toDate();
 
-    const log = new HabitLog({
+    const updatedLog = await HabitLog.findOneAndUpdate(
+      {
+        userId: req.userId,
+        habitId,
+        date: parsedDate,
+      },
+      { note },
+      { new: true, upsert: true }
+    );
+
+    res.status(201).json(updatedLog);
+  } catch (err) {
+    console.error("Failed to save habit log:", err);
+    res.status(500).json({ error: "Could not save habit log" });
+  }
+});
+
+// GET /api/habit-logs/:habitId/:date — Load note for habit on a date
+router.get("/:habitId/:date", authMiddleware, async (req, res) => {
+  const { habitId, date } = req.params;
+
+  try {
+    const parsedDate = dayjs(date).startOf("day").toDate();
+
+    const log = await HabitLog.findOne({
       userId: req.userId,
       habitId,
-      note,
       date: parsedDate,
     });
 
-    await log.save();
-    res.status(201).json(log);
+    res.status(200).json({ note: log?.note || "" });
   } catch (err) {
-    console.error("Failed to create habit log:", err);
-    res.status(500).json({ error: "Could not create habit log" });
+    console.error("Failed to load habit note:", err);
+    res.status(500).json({ error: "Could not load habit note" });
   }
 });
 

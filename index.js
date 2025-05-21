@@ -9,6 +9,7 @@ const apiRoutes = require("./routes/apiRoutes");
 const authRoutes = require("./routes/auth");
 const habitRoutes = require("./routes/habits");
 const habitLogRoutes = require("./routes/habitLogs");
+
 // User feature modules
 const onboardingRoutes = require("./routes/user"); // handles /onboarding, /update, /
 const notificationsRoutes = require("./routes/user/notifications");
@@ -24,6 +25,10 @@ const startOfWeekRoutes = require("./routes/user/startOfWeek");
 
 // Middleware
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log("➡️ Incoming request:", req.method, req.path);
+  next();
+});
 app.use(
   cors({
     origin: ["https://www.habitsyncai.com", "http://localhost:3000"],
@@ -38,25 +43,6 @@ app.use(
   })
 );
 app.options("*", cors());
-
-// DB Connection
-mongoose
-  .connect(process.env.MONGODB_URI, { dbName: "habit-sync-ai" })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB error:", err));
-
-// API Key auth middleware
-app.use((req, res, next) => {
-  //console.log("Incoming Headers:", req.headers); // 👈 log for debugging
-
-  const clientKey = req.headers["authorization"];
-
-  if (clientKey !== `Bearer ${process.env.API_KEY}`) {
-    console.warn("❌ Invalid API key:", clientKey);
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-});
 
 // Route Usage
 app.use("/api", apiRoutes);
@@ -76,8 +62,24 @@ app.use("/api/habits", habitRoutes);
 app.use("/api/habit-logs", habitLogRoutes);
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/profile", require("./routes/profile"));
-app.use("/user", require("./routes/user"));
 app.use("/api/objective", require("./routes/objective"));
+
+app.use((req, res, next) => {
+  const openPaths = ["/favicon.ico", "/robots.txt", "/manifest.json"];
+  if (openPaths.includes(req.path)) return next();
+
+  const clientKey = req.headers["authorization"];
+  if (clientKey !== `Bearer ${process.env.API_KEY}`) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+});
+
+// DB Connection
+mongoose
+  .connect(process.env.MONGODB_URI, { dbName: "habit-sync-ai" })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB error:", err));
 
 // Health Check
 app.get("/", (_, res) => {

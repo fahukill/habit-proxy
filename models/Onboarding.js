@@ -2,11 +2,7 @@ const mongoose = require("mongoose");
 
 const onboardingSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    userId: { type: String, required: true },
     name: String,
     timezone: String,
     habits: [String],
