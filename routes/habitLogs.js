@@ -11,9 +11,8 @@ router.get("/", authMiddleware, async (req, res) => {
     const query = { userId: req.userId };
 
     if (date) {
-      const start = dayjs(date).startOf("day").toDate();
-      const end = dayjs(date).endOf("day").toDate();
-      query.date = { $gte: start, $lte: end };
+      const parsedDate = dayjs(date).format("YYYY-MM-DD");
+      query.date = new Date(parsedDate); // exact match on day
     }
 
     const logs = await HabitLog.find(query).sort({ date: -1 });
@@ -24,49 +23,56 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/habit-logs — Create or update a log with a note
+// POST /api/habit-logs — Always create a new log (no overwrite)
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { habitId, note, date } = req.body;
+    const { habitId, note = "", date } = req.body;
 
-    const parsedDate = dayjs(date || new Date())
-      .startOf("day")
-      .toDate();
+    // Parse date to UTC 00:00:00 for consistency
+    const parsedDate = new Date(dayjs(date).format("YYYY-MM-DD"));
 
-    const updatedLog = await HabitLog.findOneAndUpdate(
-      {
-        userId: req.userId,
-        habitId,
-        date: parsedDate,
-      },
-      { note },
-      { new: true, upsert: true }
-    );
+    const newLog = new HabitLog({
+      userId: req.userId,
+      habitId,
+      date: parsedDate,
+      note,
+    });
 
-    res.status(201).json(updatedLog);
+    await newLog.save();
+    res.status(201).json(newLog);
   } catch (err) {
     console.error("Failed to save habit log:", err);
     res.status(500).json({ error: "Could not save habit log" });
   }
 });
 
-// GET /api/habit-logs/:habitId/:date — Load note for habit on a date
-router.get("/:habitId/:date", authMiddleware, async (req, res) => {
-  const { habitId, date } = req.params;
-
+// PATCH /api/habit-logs/:id — Update note
+router.patch("/:id", authMiddleware, async (req, res) => {
   try {
-    const parsedDate = dayjs(date).startOf("day").toDate();
-
-    const log = await HabitLog.findOne({
-      userId: req.userId,
-      habitId,
-      date: parsedDate,
-    });
-
-    res.status(200).json({ note: log?.note || "" });
+    const { note } = req.body;
+    const updated = await HabitLog.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { note },
+      { new: true }
+    );
+    res.status(200).json(updated);
   } catch (err) {
-    console.error("Failed to load habit note:", err);
-    res.status(500).json({ error: "Could not load habit note" });
+    console.error("Failed to update note:", err);
+    res.status(500).json({ error: "Could not update note" });
+  }
+});
+
+// DELETE /api/habit-logs/:id — Remove log
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    await HabitLog.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId,
+    });
+    res.status(204).end();
+  } catch (err) {
+    console.error("Failed to delete note:", err);
+    res.status(500).json({ error: "Could not delete note" });
   }
 });
 
