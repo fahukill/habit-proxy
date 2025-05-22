@@ -1,11 +1,11 @@
-// proxy/src/routes/reports.js or reports.ts
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
+const { generateAIReport } = require("../utils/generateAIReport");
+const Report = require("../models/Report");
 
+// GET /api/reports
 router.get("/", authMiddleware, async (req, res) => {
-  const Report = require("../models/Report");
-
   try {
     const reports = await Report.find({ userId: req.userId }).sort({
       createdAt: -1,
@@ -17,18 +17,11 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/reports
 router.post("/", authMiddleware, async (req, res) => {
-  const Report = require("../models/Report");
-
   try {
-    const newReport = new Report({
-      userId: req.userId,
-      generatedBy: "manual",
-      content: "This is a placeholder report", // TODO: Replace with AI logic
-    });
-
-    await newReport.save();
-    res.status(201).json(newReport);
+    const report = await generateAIReport(req.userId, "report");
+    res.status(201).json(report);
   } catch (error) {
     console.error("Failed to generate report:", error);
     res.status(500).json({ error: "Failed to generate report" });
