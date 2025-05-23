@@ -63,6 +63,8 @@ app.use("/api/habit-logs", habitLogRoutes);
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/profile", require("./routes/profile"));
 app.use("/api/objective", require("./routes/objective"));
+app.use("/api/feedback", require("./routes/feedback"));
+app.use("/api/email/welcome", require("./routes/email/welcome"));
 
 app.use((req, res, next) => {
   const openPaths = ["/favicon.ico", "/robots.txt", "/manifest.json"];
