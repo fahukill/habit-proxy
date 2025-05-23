@@ -7,9 +7,17 @@ const Report = require("../models/Report");
 // GET /api/reports
 router.get("/", authMiddleware, async (req, res) => {
   try {
+    if (!req.userId) {
+      console.warn("⚠️ No userId found in request");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    console.log("🔍 Fetching reports for userId:", req.userId);
+
     const reports = await Report.find({ userId: req.userId }).sort({
       createdAt: -1,
     });
+
     res.json(reports);
   } catch (error) {
     console.error("Failed to fetch reports:", error);
