@@ -7,18 +7,19 @@ const Report = require("../models/Report");
 // GET /api/reports
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    if (!req.userId) {
-      console.warn("⚠️ No userId found in request");
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    console.log("🔍 Fetching reports for userId:", req.userId);
+    const reports = await Report.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    const reports = await Report.find({ userId: req.userId }).sort({
-      createdAt: -1,
-    });
+    const total = await Report.countDocuments({ userId: req.userId });
+    console.log("🔍 Page:", page, "Reports:", reports.length, "Total:", total);
 
-    res.json(reports);
+    res.json({ reports, total });
   } catch (error) {
     console.error("Failed to fetch reports:", error);
     res.status(500).json({ error: "Failed to fetch reports" });
@@ -28,10 +29,18 @@ router.get("/", authMiddleware, async (req, res) => {
 // POST /api/reports
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const report = await generateAIReport(req.userId, "report");
-    res.status(201).json(report);
-  } catch (error) {
-    console.error("Failed to generate report:", error);
+    const report = new Report({
+      userId: req.userId,
+      summary: await generateAIReportForUser(req.userId),
+      tags: ["ai"], // ✅ Add this line
+      createdAt: new Date(),
+      type: "report",
+    });
+
+    await report.save();
+    res.json(report);
+  } catch (err) {
+    console.error("Failed to generate report:", err);
     res.status(500).json({ error: "Failed to generate report" });
   }
 });
