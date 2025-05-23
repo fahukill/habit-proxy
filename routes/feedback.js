@@ -11,6 +11,11 @@ router.post("/", authMiddleware, async (req, res) => {
   const email = req.email;
   const subscription = req.subscription;
 
+  if (!process.env.FEEDBACK_RECEIVER_EMAIL) {
+    console.error("❌ FEEDBACK_RECEIVER_EMAIL is not set in the environment.");
+    return res.status(500).json({ error: "Missing email configuration" });
+  }
+
   if (!message) {
     return res.status(400).json({ error: "Feedback message is required" });
   }
