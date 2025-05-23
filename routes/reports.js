@@ -17,7 +17,7 @@ router.get("/", authMiddleware, async (req, res) => {
       .limit(limit);
 
     const total = await Report.countDocuments({ userId: req.userId });
-    console.log("🔍 Page:", page, "Reports:", reports.length, "Total:", total);
+    //console.log("🔍 Page:", page, "Reports:", reports.length, "Total:", total);
 
     res.json({ reports, total });
   } catch (error) {
