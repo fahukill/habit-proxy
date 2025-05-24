@@ -12,7 +12,6 @@ router.get("/", authMiddleware, async (req, res) => {
 
     if (date) {
       const parsedDate = dayjs(date).format("YYYY-MM-DD");
-      query.date = new Date(parsedDate); // exact match on day
     }
 
     const logs = await HabitLog.find(query).sort({ date: -1 });
@@ -29,12 +28,12 @@ router.post("/", authMiddleware, async (req, res) => {
     const { habitId, note = "", date } = req.body;
 
     // Parse date to UTC 00:00:00 for consistency
-    const parsedDate = new Date(dayjs(date).format("YYYY-MM-DD"));
+    const formattedDate = dayjs(date).format("YYYY-MM-DD");
 
     const newLog = new HabitLog({
       userId: req.userId,
       habitId,
-      date: parsedDate,
+      date: formattedDate, // ✅ string only!
       note,
     });
 
