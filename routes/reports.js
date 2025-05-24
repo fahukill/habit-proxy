@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const { generateAIReport } = require("../utils/generateAIReport");
 const Report = require("../models/Report");
+const ReportActivity = require("../models/ReportActivity");
 
 // GET /api/reports
 router.get("/", authMiddleware, async (req, res) => {
@@ -29,15 +30,15 @@ router.get("/", authMiddleware, async (req, res) => {
 // POST /api/reports
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const report = new Report({
+    const report = await generateAIReport(req.userId);
+
+    // ✅ Log activity (manual generation)
+    await ReportActivity.create({
       userId: req.userId,
-      summary: await generateAIReport(req.userId),
-      tags: ["ai"], // ✅ Add this line
-      createdAt: new Date(),
-      type: "report",
+      reportId: report._id.toString(),
+      type: "manual",
     });
 
-    await report.save();
     res.json(report);
   } catch (err) {
     console.error("Failed to generate report:", err);
