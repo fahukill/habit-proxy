@@ -31,7 +31,7 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const report = new Report({
       userId: req.userId,
-      summary: await generateAIReportForUser(req.userId),
+      summary: await generateAIReport(req.userId),
       tags: ["ai"], // ✅ Add this line
       createdAt: new Date(),
       type: "report",
