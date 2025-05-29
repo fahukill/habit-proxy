@@ -12,8 +12,9 @@ router.get("/", authMiddleware, async (req, res) => {
 
     if (date) {
       const parsedDate = dayjs(date).format("YYYY-MM-DD");
+      query.date = parsedDate;
     }
-
+    //console.log("📅 Incoming date query:", req.query.date);
     const logs = await HabitLog.find(query).sort({ date: -1 });
     res.json(logs);
   } catch (err) {
@@ -36,7 +37,7 @@ router.post("/", authMiddleware, async (req, res) => {
       date: formattedDate, // ✅ string only!
       note,
     });
-
+    console.log("📅 Incoming date body:", req.body.date);
     await newLog.save();
     res.status(201).json(newLog);
   } catch (err) {
@@ -72,6 +73,40 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Failed to delete note:", err);
     res.status(500).json({ error: "Could not delete note" });
+  }
+});
+
+// GET /api/habit-logs/range?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get("/range", authMiddleware, async (req, res) => {
+  const { start, end } = req.query;
+
+  if (!start || !end) {
+    return res.status(400).json({ error: "Missing start or end date" });
+  }
+
+  try {
+    const logs = await HabitLog.find({
+      userId: req.userId,
+      date: {
+        $gte: start,
+        $lte: end,
+      },
+    }).populate("habitId", "name");
+
+    const result = logs
+      .filter((log) => log.habitId) // ✅ skip logs with missing habit ref
+      .map((log) => ({
+        _id: log._id.toString(),
+        habitId: log.habitId._id,
+        habitName: log.habitId.name,
+        date: log.date,
+        note: log.note || "",
+      }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Failed to fetch logs in range:", err);
+    res.status(500).json({ error: "Could not fetch range logs" });
   }
 });
 
