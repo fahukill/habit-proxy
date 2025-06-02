@@ -36,6 +36,7 @@ app.use(
       const allowedOrigins = [
         "https://www.habitsyncai.com",
         "http://localhost:3000",
+        "http://10.0.0.206:8081",
       ];
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
