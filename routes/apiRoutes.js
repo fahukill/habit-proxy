@@ -52,6 +52,7 @@ router.post("/user", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
+  console.log("🔐 Login attempt:", req.body);
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -69,6 +70,7 @@ router.post("/login", async (req, res) => {
     return res.json({
       id: user.id,
       email: user.email,
+      firstName: user.firstName, // ✅ Add this line
       name: `${user.firstName} ${user.lastName}`,
       image:
         user.image ||

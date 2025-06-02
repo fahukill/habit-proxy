@@ -31,7 +31,18 @@ app.use((req, res, next) => {
 });
 app.use(
   cors({
-    origin: ["https://www.habitsyncai.com", "http://localhost:3000"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // Allow React Native & CLI tools
+      const allowedOrigins = [
+        "https://www.habitsyncai.com",
+        "http://localhost:3000",
+      ];
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "OPTIONS", "DELETE"],
     allowedHeaders: [
       "Content-Type",
@@ -42,6 +53,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.options("*", cors());
 
 // Route Usage
