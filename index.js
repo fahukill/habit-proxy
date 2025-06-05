@@ -35,10 +35,11 @@ app.use(
       if (!origin) return callback(null, true); // Allow React Native & CLI tools
       const allowedOrigins = [
         "https://www.habitsyncai.com",
+        process.env.LOCAL_SERVER,
+        process.env.LOCAL_MOBILE,
         "http://localhost:3000",
-        "http://10.0.0.206:8081",
       ];
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       } else {
         return callback(new Error("Not allowed by CORS"));

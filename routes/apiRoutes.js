@@ -1,4 +1,5 @@
 // routes/apiRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -51,6 +52,8 @@ router.post("/user", async (req, res) => {
   }
 });
 
+const jwt = require("jsonwebtoken"); // make sure this is imported
+
 router.post("/login", async (req, res) => {
   console.log("🔐 Login attempt:", req.body);
   const { email, password } = req.body;
@@ -67,15 +70,27 @@ router.post("/login", async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
+    // ✅ Sign JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ✅ Respond in expected format
     return res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName, // ✅ Add this line
-      name: `${user.firstName} ${user.lastName}`,
-      image:
-        user.image ||
-        `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}`,
-      subscription: user.subscription || "Free",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`,
+        image:
+          user.image ||
+          `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}`,
+        subscription: user.subscription || "Free",
+      },
     });
   } catch (err) {
     console.error("Login error:", err.message || err);
