@@ -3,7 +3,16 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const Objective = require("../models/Objective");
+const { z } = require("zod");
 //console.log("✅ /api/objective route loaded");
+
+const ObjectiveSchema = z.object({
+  objective: z
+    .string()
+    .min(5, "Objective is too short")
+    .max(500, "Objective is too long")
+    .trim(),
+});
 
 router.get("/get", authMiddleware, async (req, res) => {
   try {
@@ -26,11 +35,16 @@ router.get("/get", authMiddleware, async (req, res) => {
 });
 
 router.post("/", authMiddleware, async (req, res) => {
-  const { objective } = req.body;
+  const parseResult = ObjectiveSchema.safeParse(req.body);
 
-  if (typeof objective !== "string") {
-    return res.status(400).json({ error: "Invalid objective" });
+  if (!parseResult.success) {
+    return res.status(400).json({
+      error: "Validation failed",
+      details: parseResult.error.flatten(),
+    });
   }
+
+  const { objective } = parseResult.data;
 
   try {
     const updated = await Objective.findOneAndUpdate(

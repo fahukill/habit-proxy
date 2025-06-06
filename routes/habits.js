@@ -3,6 +3,19 @@ const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const Habit = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
+const { z } = require("zod");
+
+const HabitSchema = z.object({
+  name: z.string().min(1).max(100).trim(),
+  frequency: z.enum(["daily", "weekly", "monthly"]),
+  days: z.array(z.string()).optional(),
+});
+
+const HabitLogSchema = z.object({
+  habitId: z.string().min(1),
+  note: z.string().max(500).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format
+});
 
 // ✅ GET /api/habits — fetch all habits for the user
 router.get("/", authMiddleware, async (req, res) => {
@@ -39,17 +52,17 @@ router.get("/log", authMiddleware, async (req, res) => {
 router.post("/log", authMiddleware, async (req, res) => {
   try {
     const dayjs = require("dayjs");
-    const { habitId, note, date } = req.body;
-    console.log("🛠️ Received log:", { habitId, date, note });
 
-    if (!habitId || !date) {
-      return res.status(400).json({ error: "Missing habitId or date" });
+    const result = HabitLogSchema.safeParse(req.body);
+    if (!result.success) {
+      return res
+        .status(400)
+        .json({ error: "Invalid habit log", details: result.error.flatten() });
     }
 
-    // ✅ Clean date to YYYY-MM-DD string
+    const { habitId, note, date } = result.data;
     const logDate = dayjs(date).format("YYYY-MM-DD");
 
-    // ✅ Check if already logged on this day
     const existingLog = await HabitLog.findOne({
       userId: req.userId,
       habitId,
@@ -57,10 +70,9 @@ router.post("/log", authMiddleware, async (req, res) => {
     });
 
     if (existingLog) {
-      return res.status(200).json(existingLog); // 🧠 Already logged
+      return res.status(200).json(existingLog);
     }
 
-    // ✅ Save new log
     const log = new HabitLog({
       userId: req.userId,
       habitId,
@@ -69,7 +81,7 @@ router.post("/log", authMiddleware, async (req, res) => {
     });
 
     await log.save();
-    return res.status(201).json(log); // 🟢 Success
+    return res.status(201).json(log);
   } catch (err) {
     console.error("❌ Failed to log habit:", err);
     return res.status(500).json({ error: "Could not log habit" });
@@ -79,17 +91,22 @@ router.post("/log", authMiddleware, async (req, res) => {
 // ✅ POST /api/habits — create a new habit
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { name, frequency, days } = req.body;
+    const result = HabitSchema.safeParse(req.body);
 
-    if (!name || !frequency) {
-      return res.status(400).json({ error: "Name and frequency are required" });
+    if (!result.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: result.error.flatten(),
+      });
     }
+
+    const { name, frequency, days } = result.data;
 
     const habit = new Habit({
       userId: req.userId,
       name,
       frequency,
-      days: Array.isArray(days) ? days : [], // ensure it's always an array
+      days: Array.isArray(days) ? days : [],
     });
 
     await habit.save();
@@ -99,5 +116,4 @@ router.post("/", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Could not create habit" });
   }
 });
-
 module.exports = router;
