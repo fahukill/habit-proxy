@@ -80,6 +80,8 @@ app.use("/api/objective", require("./routes/objective"));
 app.use("/api/feedback", require("./routes/feedback"));
 app.use("/api/email/welcome", require("./routes/email/welcome"));
 app.use("/api/streaks", require("./routes/streaks"));
+app.use("/api", require("./routes/habitSuggestions"));
+
 app.use((req, res, next) => {
   const openPaths = ["/favicon.ico", "/robots.txt", "/manifest.json"];
   if (openPaths.includes(req.path)) return next();
