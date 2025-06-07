@@ -1,4 +1,3 @@
-// proxy/src/utils/aiPromptBuilder.js
 const dayjs = require("dayjs");
 
 function buildAIPrompt(
@@ -56,4 +55,27 @@ function buildAIPrompt(
   return `${header}${objSection}${habitSection}${logSection}${reportSummary}${instructions}`;
 }
 
-module.exports = { buildAIPrompt };
+// ✅ NEW: AI prompt builder for habit suggestions from onboarding goals
+function buildHabitSuggestionPrompt(goals) {
+  const intro = `A user is starting to use a habit tracking app. These are the goals they selected during onboarding:\n${goals
+    .map((g) => `- ${g}`)
+    .join("\n")}`;
+
+  const instructions = `
+Suggest exactly 3 simple, effective daily or weekly habits that will help the user achieve these goals.
+Only return the list in this format:
+
+1. [Habit one]
+2. [Habit two]
+3. [Habit three]
+
+Do not add any extra explanation or greeting.
+`;
+
+  return `${intro}\n${instructions}`;
+}
+
+module.exports = {
+  buildAIPrompt,
+  buildHabitSuggestionPrompt, // 👈 export the new function
+};

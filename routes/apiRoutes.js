@@ -167,4 +167,8 @@ router.get("/encouragement", async (req, res) => {
   }
 });
 
+// HABIT Suggestions
+const habitSuggestions = require("./habitSuggestions");
+router.use(habitSuggestions);
+
 module.exports = router;
