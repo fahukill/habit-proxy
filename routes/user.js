@@ -5,26 +5,34 @@ const Habit = require("../models/Habit");
 const authMiddleware = require("../middleware/auth"); // adjust if necessary
 
 // POST /user/onboarding
-router.post("/onboarding", authMiddleware, async (req, res) => {
-  try {
-    const { firstName, lastName, habits } = req.body;
+// router.post("/onboarding", authMiddleware, async (req, res) => {
+//   console.log(req.body);
+//   try {
+//     const { firstName, lastName, habits, regenCount } = req.body;
 
-    await User.findByIdAndUpdate(req.userId, { firstName, lastName });
+//     await User.findByIdAndUpdate(req.userId, {
+//       firstName,
+//       lastName,
+//       onboarding: {
+//         completedAt: new Date(),
+//         regenCount: regenCount ?? 0, // fallback to 0
+//       },
+//     });
 
-    if (Array.isArray(habits) && habits.length > 0) {
-      const habitDocs = habits.map((h) => ({
-        ...h,
-        userId: req.userId,
-      }));
-      await Habit.insertMany(habitDocs);
-    }
-
-    res.json({ message: "Onboarding complete" });
-  } catch (err) {
-    console.error("Onboarding error:", err);
-    res.status(500).json({ error: "Failed onboarding" });
-  }
-});
+//     if (Array.isArray(habits) && habits.length > 0) {
+//       const habitDocs = habits.map((h) => ({
+//         ...h,
+//         userId: req.userId,
+//       }));
+//       await Habit.insertMany(habitDocs);
+//     }
+//     console.log("Onboarding complete for user:", req.userId);
+//     res.json({ message: "Onboarding complete" });
+//   } catch (err) {
+//     console.error("Onboarding error:", err);
+//     res.status(500).json({ error: "Failed onboarding" });
+//   }
+// });
 
 // GET /user/
 router.get("/", authMiddleware, async (req, res) => {

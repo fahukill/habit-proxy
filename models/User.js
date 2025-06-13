@@ -1,25 +1,19 @@
-// models/User.js
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    email: { type: String, required: true, unique: true },
+    firstName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
-    firstName: String,
-    lastName: String,
-    timezone: String,
     subscription: {
       type: String,
-      enum: ["Free", "Pro", "Coach"],
-      default: "Free",
+      enum: ["free", "pro", "coach"],
+      default: "free",
     },
-    renewalDate: String,
-    notifications: {
-      aiReports: { type: Boolean, default: true },
-      streakReminders: { type: Boolean, default: true },
-      weeklySummary: { type: Boolean, default: true },
-      accountActivity: { type: Boolean, default: true },
-    },
+    image: String,
+
+    // Preferences & Settings
     startOfWeek: {
       type: String,
       enum: ["Sunday", "Monday"],
@@ -27,8 +21,36 @@ const userSchema = new mongoose.Schema(
     },
     coachingTone: {
       type: String,
-      enum: ["Uplifting", "Tough Love", "Humorous"],
+      enum: ["Uplifting", "Tough love 💪", "Humorous", "Neutral"],
       default: "Uplifting",
+    },
+    notifications: {
+      aiReports: { type: Boolean, default: true },
+      streakReminders: { type: Boolean, default: true },
+      weeklySummary: { type: Boolean, default: true },
+      accountActivity: { type: Boolean, default: true },
+    },
+
+    // Onboarding + Goal Info (moved from Onboarding.js)
+    bigGoal: { type: String },
+    focusAreas: [String],
+    selectedHabits: [String],
+    habitCustomizations: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+    regenCount: { type: Number, default: 0 },
+    motivationStyle: String,
+    timeCommitment: String,
+    goalStyle: String,
+    wantsSuggestions: String,
+    wantsAISuggestions: String,
+    reminderFrequency: String,
+    timezone: String,
+    isAISubscriber: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

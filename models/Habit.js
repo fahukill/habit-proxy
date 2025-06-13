@@ -17,6 +17,8 @@ const habitSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    customization: { type: String },
+    focusArea: { type: String },
   },
   { timestamps: true }
 );

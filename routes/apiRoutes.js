@@ -1,17 +1,16 @@
-// routes/apiRoutes.js
-
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const OpenAI = require("openai");
 
-const Onboarding = require("../models/Onboarding");
-const Motivation = require("../models/Motivation");
 const User = require("../models/User");
+const Motivation = require("../models/Motivation");
 const Habit = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
 const Report = require("../models/Report");
+const habitSuggestions = require("./habitSuggestions");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -21,7 +20,7 @@ const LogEntrySchema = z.object({
   note: z.string().optional(),
 });
 
-// AUTH
+// AUTH ──────────────────────────────────────────────────────────────────────
 router.post("/user", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
   const subscription = (req.body.subscription || "Free").trim();
@@ -45,22 +44,34 @@ router.post("/user", async (req, res) => {
       subscription,
     });
 
-    return res.status(201).json({ id: newUser._id });
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        name: `${newUser.firstName} ${newUser.lastName}`,
+        image: `https://ui-avatars.com/api/?name=${newUser.firstName}+${newUser.lastName}`,
+        subscription: newUser.subscription || "Free",
+      },
+    });
   } catch (err) {
     console.error("Signup error:", err.message || err);
     return res.status(500).json({ message: "Server error" });
   }
 });
 
-const jwt = require("jsonwebtoken"); // make sure this is imported
-
 router.post("/login", async (req, res) => {
-  console.log("🔐 Login attempt:", req.body);
   const { email, password } = req.body;
-
-  if (!email || !password) {
+  if (!email || !password)
     return res.status(400).json({ message: "Missing credentials" });
-  }
 
   try {
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -70,14 +81,12 @@ router.post("/login", async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    // ✅ Sign JWT token
     const token = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // ✅ Respond in expected format
     return res.json({
       token,
       user: {
@@ -98,34 +107,79 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// OBJECTIVE / ONBOARDING
+// OBJECTIVE ─────────────────────────────────────────────────────────────────
 router.get("/objective", async (req, res) => {
   const userId = req.headers["x-user-id"];
-  const obj = await Onboarding.findOne({ userId });
+  const obj = await User.findById(userId);
   res.json({ objective: obj?.objective || "" });
 });
 
-router.post("/onboarding", async (req, res) => {
-  const userId = req.headers["x-user-id"];
-  const { objective } = req.body;
-
-  if (!userId || !objective) {
-    return res.status(400).json({ error: "Missing data" });
-  }
-
+// ONBOARDING SUBMIT ─────────────────────────────────────────────────────────
+router.post("/onboarding/submit", async (req, res) => {
   try {
-    const doc = await Onboarding.findOneAndUpdate(
-      { userId },
-      { objective },
-      { upsert: true, new: true }
-    );
-    res.status(200).json(doc);
+    const userId = req.headers["x-user-id"];
+    if (!userId) return res.status(401).json({ error: "Missing user ID" });
+
+    const {
+      firstName,
+      lastName,
+      bigGoal,
+      focusAreas,
+      selectedHabits,
+      habitCustomizations,
+      regenCount,
+      motivationStyle,
+      weekStart,
+      timeCommitment,
+      goalStyle,
+      wantsSuggestions,
+      reminderFrequency,
+      wantsAISuggestions,
+    } = req.body;
+
+    const updateData = {
+      firstName,
+      lastName,
+      bigGoal,
+      focusAreas,
+      selectedHabits,
+      habitCustomizations,
+      regenCount,
+      motivationStyle,
+      weekStart,
+      timeCommitment,
+      goalStyle,
+      wantsSuggestions,
+      reminderFrequency,
+      wantsAISuggestions,
+    };
+
+    const user = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // ✅ Save habits to the Habit collection
+    if (Array.isArray(selectedHabits) && selectedHabits.length > 0) {
+      const habitDocs = selectedHabits.map((habitName) => ({
+        userId,
+        name: habitName,
+        frequency: "weekly", // or customize if needed
+        customization: habitCustomizations?.[habitName] || "",
+        focusArea: focusAreas?.[0] || "",
+      }));
+
+      await Habit.insertMany(habitDocs);
+    }
+
+    res.status(200).json({ success: true, user });
   } catch (err) {
+    console.error("❌ Onboarding submission error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ENCOURAGEMENT
+// ENCOURAGEMENT ─────────────────────────────────────────────────────────────
 router.get("/encouragement", async (req, res) => {
   const timezone = req.headers["x-timezone"] || "UTC";
   const userId = req.headers["x-user-id"];
@@ -157,7 +211,6 @@ router.get("/encouragement", async (req, res) => {
     const message =
       completion.choices?.[0]?.message?.content?.trim() ||
       "You're doing great! Keep it up.";
-
     await Motivation.create({ userId, message, date: today });
 
     return res.json({ message });
@@ -167,8 +220,7 @@ router.get("/encouragement", async (req, res) => {
   }
 });
 
-// HABIT Suggestions
-const habitSuggestions = require("./habitSuggestions");
+// HABIT SUGGESTIONS ─────────────────────────────────────────────────────────
 router.use(habitSuggestions);
 
 module.exports = router;

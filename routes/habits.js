@@ -9,6 +9,8 @@ const HabitSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   frequency: z.enum(["daily", "weekly", "monthly"]),
   days: z.array(z.string()).optional(),
+  customization: z.string().max(100).optional(),
+  focusArea: z.string().max(100).optional(),
 });
 
 const HabitLogSchema = z.object({
@@ -91,29 +93,36 @@ router.post("/log", authMiddleware, async (req, res) => {
 // ✅ POST /api/habits — create a new habit
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const result = HabitSchema.safeParse(req.body);
+    console.log("🌱 Incoming habit creation request:", req.body);
 
+    const result = HabitSchema.safeParse(req.body);
     if (!result.success) {
+      console.warn("⚠️ Habit validation failed:", result.error.flatten());
       return res.status(400).json({
         error: "Validation failed",
         details: result.error.flatten(),
       });
     }
 
-    const { name, frequency, days } = result.data;
+    const { name, frequency, days, customization, focusArea } = result.data;
 
     const habit = new Habit({
       userId: req.userId,
       name,
       frequency,
       days: Array.isArray(days) ? days : [],
+      customization: customization || "",
+      focusArea: focusArea || "",
     });
 
     await habit.save();
+
+    console.log("✅ Habit created:", habit);
     res.status(201).json(habit);
   } catch (err) {
-    console.error("Failed to create habit:", err);
+    console.error("🔥 Failed to create habit:", err);
     res.status(500).json({ error: "Could not create habit" });
   }
 });
+
 module.exports = router;

@@ -21,6 +21,7 @@ module.exports = async (req, res, next) => {
     req.email = user.email;
     req.subscription = user.subscription || "Free";
 
+    // ✅ FIX: You forgot this
     next();
   } catch (err) {
     console.error("Auth middleware error:", err);
