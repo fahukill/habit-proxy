@@ -2,9 +2,12 @@ const express = require("express");
 const router = express.Router();
 const { callOpenAI } = require("../utils/openaiClient");
 
-function buildHabitSuggestionPrompt(goals) {
+function buildHabitSuggestionPrompt(goals, goalStyle, reminderFrequency) {
   return `
 Given the user's goals: ${goals.join(", ")}
+
+User's goal-tracking style: ${goalStyle || "Not specified"}
+User's reminder preference: ${reminderFrequency || "Not specified"}
 
 Return 3 personalized habit suggestions in JSON format.
 Each habit must include:
@@ -22,18 +25,22 @@ Example:
   ...
 ]
 
-Return ONLY valid JSON.
-  `;
+Respond with ONLY valid JSON.
+`.trim();
 }
 
 router.post("/ai/habit-suggestions", async (req, res) => {
-  const { goals } = req.body;
+  const { goals, goalStyle, reminderFrequency } = req.body;
 
   if (!Array.isArray(goals) || goals.length === 0) {
     return res.status(400).json({ error: "Goals are required." });
   }
 
-  const prompt = buildHabitSuggestionPrompt(goals);
+  const prompt = buildHabitSuggestionPrompt(
+    goals,
+    goalStyle,
+    reminderFrequency
+  );
 
   try {
     const aiResponse = await callOpenAI(prompt);
