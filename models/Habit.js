@@ -10,8 +10,12 @@ const habitSchema = new mongoose.Schema(
     name: { type: String, required: true },
     frequency: {
       type: String,
-      enum: ["daily", "weekly", "monthly"],
+      enum: ["daily", "weekly", "monthly", "custom"],
       required: true,
+    },
+    goal: {
+      type: String,
+      default: "",
     },
     days: {
       type: [String],

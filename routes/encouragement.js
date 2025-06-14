@@ -11,6 +11,7 @@ const { callOpenAI } = require("../utils/openaiClient"); // to be built
 router.post("/encouragement", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
+    const timezone = req.headers["x-timezone"] || "UTC";
 
     const [objective, habits, logs, reports] = await Promise.all([
       Objective.findOne({ userId }),
@@ -19,7 +20,7 @@ router.post("/encouragement", authMiddleware, async (req, res) => {
       Report.find({ userId }).sort({ createdAt: -1 }).limit(3),
     ]);
 
-    const prompt = buildAIPrompt(objective, habits, logs, reports);
+    const prompt = buildAIPrompt(objective, habits, logs, reports, timezone);
     const aiResponse = await callOpenAI(prompt);
 
     res.status(200).json({ message: aiResponse });

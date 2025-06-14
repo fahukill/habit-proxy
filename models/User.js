@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["free", "pro", "coach"],
       default: "free",
+      timezone: { type: String, default: "UTC" },
     },
     image: String,
 

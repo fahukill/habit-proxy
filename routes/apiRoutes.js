@@ -11,6 +11,7 @@ const Habit = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
 const Report = require("../models/Report");
 const habitSuggestions = require("./habitSuggestions");
+const { getUnitSystem } = require("../utils/timezoneUtils");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -22,7 +23,7 @@ const LogEntrySchema = z.object({
 
 // AUTH ──────────────────────────────────────────────────────────────────────
 router.post("/user", async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, password, timezone } = req.body;
   const subscription = (req.body.subscription || "Free").trim();
 
   if (!firstName || !lastName || !email || !password) {
@@ -42,6 +43,7 @@ router.post("/user", async (req, res) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       subscription,
+      timezone: timezone || "UTC",
     });
 
     const token = jwt.sign(
@@ -135,6 +137,7 @@ router.post("/onboarding/submit", async (req, res) => {
       wantsSuggestions,
       reminderFrequency,
       wantsAISuggestions,
+      timezone,
     } = req.body;
 
     const updateData = {
@@ -152,6 +155,7 @@ router.post("/onboarding/submit", async (req, res) => {
       wantsSuggestions,
       reminderFrequency,
       wantsAISuggestions,
+      timezone,
     };
 
     const user = await User.findByIdAndUpdate(userId, updateData, {
@@ -161,12 +165,18 @@ router.post("/onboarding/submit", async (req, res) => {
 
     // ✅ Save habits to the Habit collection
     if (Array.isArray(selectedHabits) && selectedHabits.length > 0) {
+      // Remove any existing onboarding habits (optional, if you expect re-submission)
+      await Habit.deleteMany({ userId });
+
       const habitDocs = selectedHabits.map((habitName) => ({
         userId,
         name: habitName,
-        frequency: "weekly", // or customize if needed
+
+        frequency: req.body.habitFrequencies?.[habitName] || "daily",
+
         customization: habitCustomizations?.[habitName] || "",
         focusArea: focusAreas?.[0] || "",
+        createdAt: new Date(),
       }));
 
       await Habit.insertMany(habitDocs);

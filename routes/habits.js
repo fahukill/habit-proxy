@@ -11,6 +11,7 @@ const HabitSchema = z.object({
   days: z.array(z.string()).optional(),
   customization: z.string().max(100).optional(),
   focusArea: z.string().max(100).optional(),
+  goal: z.string().min(3).max(200).optional(),
 });
 
 const HabitLogSchema = z.object({
