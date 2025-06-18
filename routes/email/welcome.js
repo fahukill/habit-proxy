@@ -5,6 +5,7 @@ const generateWelcomeEmail = require("../../lib/emailTemplates/welcomeEmail");
 const sendWelcomeEmail = require("../../lib/emailWelcome");
 
 router.post("/", async (req, res) => {
+  console.log("📬 /email/welcome route hit", req.body);
   const { email, firstName } = req.body;
 
   if (!email) {
