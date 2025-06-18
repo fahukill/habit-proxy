@@ -22,7 +22,7 @@ router.get("/get", authMiddleware, async (req, res) => {
     //console.log("📦 Query result:", doc);
 
     if (!doc) {
-      console.warn("⚠️ No match for userId:", req.userId);
+      //console.warn("⚠️ No match for userId:", req.userId);
     } else {
       //console.log("📦 Found objective:", doc.text);
     }

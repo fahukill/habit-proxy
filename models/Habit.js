@@ -11,6 +11,8 @@ const habitSchema = new mongoose.Schema(
     frequency: {
       type: String,
       enum: ["daily", "weekly", "monthly", "custom"],
+      monthlyDays: [Number],
+      lastDay: Boolean,
       required: true,
     },
     goal: {

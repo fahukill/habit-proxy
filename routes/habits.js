@@ -5,14 +5,28 @@ const Habit = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
 const { z } = require("zod");
 
-const HabitSchema = z.object({
-  name: z.string().min(1).max(100).trim(),
-  frequency: z.enum(["daily", "weekly", "monthly"]),
-  days: z.array(z.string()).optional(),
-  customization: z.string().max(100).optional(),
-  focusArea: z.string().max(100).optional(),
-  goal: z.string().min(3).max(200).optional(),
-});
+const HabitSchema = z
+  .object({
+    name: z.string().min(1).max(100).trim(),
+    frequency: z.enum(["daily", "weekly", "monthly", "custom"]),
+    days: z.array(z.string()).optional(),
+    monthlyDays: z.array(z.number().min(1).max(31)).optional(),
+    lastDay: z.boolean().optional(),
+    customization: z.string().max(100).optional(),
+    focusArea: z.string().max(100).optional(),
+    goal: z.string().min(3).max(200).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.frequency !== "monthly") return true;
+      return (data.monthlyDays?.length || 0) > 0 || data.lastDay === true;
+    },
+    {
+      message:
+        "At least one day or 'Last Day' must be selected for monthly habits",
+      path: ["monthlyDays"],
+    }
+  );
 
 const HabitLogSchema = z.object({
   habitId: z.string().min(1),
