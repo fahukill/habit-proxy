@@ -10,25 +10,24 @@ function buildHabitSuggestionPrompt(
   unitSystem
 ) {
   return `
-Given the user's goals: ${goals.join(", ")}
+You are a habit-building assistant. Generate 3 highly relevant, real-world habit suggestions that align with the user's personal goals and preferences.
 
-User's goal-tracking style: ${goalStyle || "Not specified"}
-User's reminder preference: ${reminderFrequency || "Not specified"}
-Use the ${unitSystem} measurement system for any suggestions that include units.
+Input:
+- User's goals: ${goals.join(", ")}
+- Goal-tracking style: ${goalStyle || "Not specified"}
+- Reminder frequency: ${reminderFrequency || "Not specified"}
+- Unit system: ${unitSystem} (use this for any habit involving time, distance, weight, etc.)
 
-Return 3 personalized habit suggestions in JSON format.
+Requirements:
+1. Base your suggestions on the user's specific goals — do not be generic. Assume the user is ready to take daily or weekly action.
+2. Each habit must be **actionable**, **realistic**, and **clearly tied to one or more goals**.
+3. Return an **array of 3 habits in valid JSON format**, with no additional text.
+4. Each habit must include:
+   - title: A short, specific, action-oriented phrase (max 8 words).
+   - customizationType: One of these keys — "timeOfDay", "focusArea", or "format" — indicating how the habit can be personalized.
+   - options: 2–4 short customization options (each 1–4 words max).
 
-All suggesteed habits should be actionable and specific to the user's goals. 
-
-
-Each habit must include:
-- title: short actionable phrase
-- customizationType: a key like "timeOfDay", "focusArea", or "format"
-- options: no more than 4 customization options, each 1–4 words max
-
-
-
-Example:
+✅ Example:
 [
   {
     "title": "Run for 30 minutes",
@@ -38,7 +37,8 @@ Example:
   ...
 ]
 
-Respond with ONLY valid JSON.
+Respond with **ONLY valid JSON** — no explanation, no intro, no trailing comments.
+
 `.trim();
 }
 
